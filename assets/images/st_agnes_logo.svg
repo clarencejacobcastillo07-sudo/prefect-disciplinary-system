@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 550" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A5568" />
+      <stop offset="50%" stop-color="#2D3748" />
+      <stop offset="100%" stop-color="#1A202C" />
+    </linearGradient>
+    
+    <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF5FA2" />
+      <stop offset="100%" stop-color="#E91E63" />
+    </linearGradient>
+
+    <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF9C4" />
+      <stop offset="70%" stop-color="#FBC02D" />
+      <stop offset="100%" stop-color="#F57F17" />
+    </radialGradient>
+    
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Crest Shield with Shadow -->
+  <g filter="url(#shadow)">
+    <path d="M 250,20 C 370,20 460,40 460,140 C 460,340 370,470 250,520 C 130,470 40,340 40,140 C 40,40 130,20 250,20 Z" 
+          fill="url(#shieldGrad)" stroke="#E91E63" stroke-width="6" />
+    <path d="M 250,32 C 358,32 440,50 440,142 C 440,326 358,446 250,494 C 142,446 60,326 60,142 C 60,50 142,32 250,32 Z" 
+          fill="#1B1B1F" opacity="0.6"/>
+  </g>
+
+  <!-- Main Circular Seal -->
+  <circle cx="250" cy="230" r="170" fill="url(#pinkGrad)" stroke="#FFFFFF" stroke-width="4" filter="url(#shadow)" />
+  
+  <!-- Outer Decorative Ring Pattern -->
+  <circle cx="250" cy="230" r="162" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="8,6" opacity="0.8" />
+  <circle cx="250" cy="230" r="120" fill="#1B1B1F" stroke="#F8BBD0" stroke-width="3" />
+
+  <!-- Sun Rays & Mountains Artwork in Center -->
+  <g transform="translate(0, 10)">
+    <!-- Sun -->
+    <circle cx="250" cy="190" r="35" fill="url(#sunGrad)" />
+    <!-- Sun Rays -->
+    <path d="M 250,140 L 250,150 M 210,160 L 218,168 M 290,160 L 282,168 M 195,190 L 205,190 M 305,190 L 295,190" 
+          stroke="#FBC02D" stroke-width="3" stroke-linecap="round" />
+    
+    <!-- Mountains -->
+    <polygon points="170,230 215,185 260,230" fill="#795548" />
+    <polygon points="215,185 228,198 215,205 202,198" fill="#FFFFFF" /> <!-- Snow cap -->
+    
+    <polygon points="230,230 270,175 315,230" fill="#5D4037" />
+    <polygon points="270,175 282,190 270,198 258,190" fill="#FFFFFF" /> <!-- Snow cap -->
+
+    <!-- Open Book -->
+    <path d="M 180,240 Q 250,225 250,240 Q 250,225 320,240 L 320,265 Q 250,250 250,265 Q 250,250 180,265 Z" fill="#FFFFFF" stroke="#333" stroke-width="2" />
+    <path d="M 188,245 Q 245,233 245,245 L 245,260 Q 188,248 188,245 Z" fill="#F5F5F5" />
+    <path d="M 312,245 Q 255,233 255,245 L 255,260 Q 312,248 312,245 Z" fill="#F5F5F5" />
+    
+    <!-- Flaming Torch -->
+    <rect x="246" y="220" width="8" height="35" fill="#D84315" rx="2" />
+    <path d="M 250,205 C 240,215 245,225 250,225 C 255,225 260,215 250,205 Z" fill="#FF5722" />
+    <path d="M 250,210 C 245,217 248,222 250,222 C 252,222 255,217 250,210 Z" fill="#FFEB3B" />
+  </g>
+
+  <!-- Circular Text: St. Agnes Academy of Caloocan Inc. -->
+  <path id="textPathTop" d="M 105,230 A 145,145 0 1,1 395,230" fill="none" />
+  <text font-family="'Poppins', 'Arial', sans-serif" font-weight="bold" font-size="21" fill="#FFFFFF" letter-spacing="2">
+    <textPath href="#textPathTop" startOffset="50%" text-anchor="middle">
+      St. Agnes Academy of Caloocan Inc.
+    </textPath>
+  </text>
+
+  <!-- Bottom Pink Banner Ribbon -->
+  <g transform="translate(0, 10)" filter="url(#shadow)">
+    <path d="M 90,400 C 180,450 320,450 410,400 L 430,440 C 320,490 180,490 70,440 Z" fill="url(#pinkGrad)" stroke="#FFFFFF" stroke-width="2" />
+    <text x="250" y="448" font-family="'Poppins', 'Georgia', serif" font-weight="900" font-size="24" fill="#FFFFFF" text-anchor="middle" letter-spacing="3">
+      Since 2011
+    </text>
+  </g>
+</svg>
