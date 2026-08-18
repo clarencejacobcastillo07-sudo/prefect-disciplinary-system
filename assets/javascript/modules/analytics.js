@@ -3,7 +3,7 @@
  * Prefect Disciplinary Action System — St. Agnes Academy
  */
 
-window.renderAnalyticsModule = async function(container) {
+window.renderAnalyticsModule = async function (container) {
   let metrics = {
     total_students: 0,
     total_incidents: 0,
@@ -23,13 +23,13 @@ window.renderAnalyticsModule = async function(container) {
     console.error('Error fetching analytics:', e);
   }
 
-  const minorCount  = incidents.filter(i => i.violation_category === 'Minor').length;
-  const majorCount  = incidents.filter(i => i.violation_category === 'Major').length;
+  const minorCount = incidents.filter(i => i.violation_category === 'Minor').length;
+  const majorCount = incidents.filter(i => i.violation_category === 'Major').length;
   const severeCount = incidents.filter(i => i.violation_category === 'Severe').length;
   const total = incidents.length || 1;
 
-  const minorPct  = Math.round((minorCount / total) * 100);
-  const majorPct  = Math.round((majorCount / total) * 100);
+  const minorPct = Math.round((minorCount / total) * 100);
+  const majorPct = Math.round((majorCount / total) * 100);
   const severePct = Math.round((severeCount / total) * 100);
 
   container.innerHTML = `
@@ -53,7 +53,7 @@ window.renderAnalyticsModule = async function(container) {
         <div style="padding:20px 10px; display:flex; justify-content:space-around; text-align:center;">
           <div>
             <div style="font-size:1.8rem; font-weight:800; color:var(--text-light);">${metrics.total_students || 0}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Test Students</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Total Students</div>
           </div>
           <div>
             <div style="font-size:1.8rem; font-weight:800; color:var(--accent);">${metrics.total_incidents || 0}</div>

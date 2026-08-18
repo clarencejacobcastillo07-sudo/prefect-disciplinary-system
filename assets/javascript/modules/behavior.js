@@ -3,7 +3,7 @@
  * Prefect Disciplinary Action System — St. Agnes Academy
  */
 
-window.renderBehaviorModule = async function(container) {
+window.renderBehaviorModule = async function (container) {
   let students = [];
   try {
     const res = await ApiClient.get('students', 'list');
@@ -30,7 +30,7 @@ window.renderBehaviorModule = async function(container) {
       <div class="card card-dark" style="text-align:center; padding:45px;">
         <i class="fas fa-users-slash fa-2x" style="opacity:0.4; margin-bottom:12px; display:block;"></i>
         <h3 style="font-size:1.1rem; color:var(--text-light); margin-bottom:6px;">No Students Available</h3>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Create test student records to begin tracking behavior and conduct standings.</p>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Add student records to begin tracking behavior and conduct standings.</p>
         <button class="btn btn-primary" onclick="Router.navigate('students')">
           <i class="fas fa-user-plus"></i> Go to Student Records
         </button>
@@ -38,11 +38,11 @@ window.renderBehaviorModule = async function(container) {
     ` : `
       <div class="card-grid">
         ${students.map(s => {
-          const pts = s.conduct_points !== undefined ? s.conduct_points : 100;
-          const riskColor = pts >= 90 ? 'var(--success)' : (pts >= 75 ? 'var(--warning)' : 'var(--danger)');
-          const riskLabel = pts >= 90 ? 'Low Risk (Good)' : (pts >= 75 ? 'Moderate Risk' : 'High Risk / Critical');
+    const pts = s.conduct_points !== undefined ? s.conduct_points : 100;
+    const riskColor = pts >= 90 ? 'var(--success)' : (pts >= 75 ? 'var(--warning)' : 'var(--danger)');
+    const riskLabel = pts >= 90 ? 'Low Risk (Good)' : (pts >= 75 ? 'Moderate Risk' : 'High Risk / Critical');
 
-          return `
+    return `
             <div class="card card-dark" style="border-top: 4px solid ${riskColor};">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
                 <span class="badge" style="background: ${riskColor}; color:#fff; font-size:0.75rem;">${riskLabel}</span>
@@ -67,7 +67,7 @@ window.renderBehaviorModule = async function(container) {
               </div>
             </div>
           `;
-        }).join('')}
+  }).join('')}
       </div>
     `}
   `;

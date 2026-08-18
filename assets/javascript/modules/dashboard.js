@@ -3,11 +3,11 @@
  * Prefect Disciplinary Action System — St. Agnes Academy
  */
 
-window.renderDashboardModule = async function(container) {
-  const user = typeof AuthManager !== 'undefined' && AuthManager.getCurrentUser 
-    ? AuthManager.getCurrentUser() 
+window.renderDashboardModule = async function (container) {
+  const user = typeof AuthManager !== 'undefined' && AuthManager.getCurrentUser
+    ? AuthManager.getCurrentUser()
     : { full_name: 'Administrator', role_name: 'System Administrator' };
-  
+
   let data = {
     total_students: 0,
     total_incidents: 0,
@@ -41,7 +41,7 @@ window.renderDashboardModule = async function(container) {
       <div class="card metric-card" onclick="Router.navigate('students')" style="cursor:pointer;" title="View Student Records">
         <div class="metric-info">
           <h3>${data.total_students}</h3>
-          <p>Total Test Students</p>
+          <p>Total Students</p>
         </div>
         <div class="metric-icon"><i class="fas fa-user-graduate"></i></div>
       </div>

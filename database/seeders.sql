@@ -31,7 +31,7 @@ INSERT INTO users (id, role_id, full_name, email, is_active) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 3. Test Student Records (Fictional Testing Baseline)
+-- 3. Student Records
 -- ============================================================
 INSERT INTO students
     (id, lrn, first_name, last_name, middle_name,
@@ -44,7 +44,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 4. Test Parents / Guardians
+-- 4. Parents / Guardians
 -- ============================================================
 INSERT INTO parents
     (id, student_id, guardian_name, relationship, contact_number, email, address)

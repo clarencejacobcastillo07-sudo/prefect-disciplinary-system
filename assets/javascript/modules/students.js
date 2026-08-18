@@ -3,15 +3,15 @@
  * Prefect Disciplinary Action System — St. Agnes Academy
  * 
  * Allows authorized users to:
- * - View test students
+ * - View students
  * - Search students by ID, LRN, Name, Grade, Section
- * - Add new test students
- * - Edit test student profiles & guardian contacts
+ * - Add new students
+ * - Edit student profiles & guardian contacts
  * - View comprehensive student standing & disciplinary summary
- * - Delete test student records
+ * - Delete student records
  */
 
-window.renderStudentsModule = async function(container) {
+window.renderStudentsModule = async function (container) {
   let students = [];
   let currentSearch = '';
   let currentGrade = '';
@@ -31,7 +31,7 @@ window.renderStudentsModule = async function(container) {
           <td colspan="8" style="text-align:center; color:var(--text-muted); padding:35px;">
             <i class="fas fa-user-graduate fa-2x" style="margin-bottom:10px; opacity:0.4; display:block;"></i>
             No student records found matching your criteria.<br>
-            Click <strong>"Add Test Student"</strong> to create a new test record.
+            Click <strong>"Add Student"</strong> to create a new record.
           </td>
         </tr>
       `;
@@ -101,12 +101,12 @@ window.renderStudentsModule = async function(container) {
           <i class="fas fa-user-graduate" style="color:var(--accent); margin-right:8px;"></i>Student Records Management
         </h2>
         <p style="font-size:0.85rem; color:var(--text-muted);">
-          Manage student test profiles, conduct standings, and guardian contact details for disciplinary proceedings.
+          Manage student profiles, conduct standings, and guardian contact details for disciplinary proceedings.
         </p>
       </div>
       <div style="display:flex; gap:10px;">
         <button class="btn btn-primary" onclick="openAddStudentModal()">
-          <i class="fas fa-user-plus"></i> Add Test Student
+          <i class="fas fa-user-plus"></i> Add Student
         </button>
       </div>
     </div>
@@ -166,16 +166,13 @@ window.renderStudentsModule = async function(container) {
     <div class="modal-overlay" id="studentFormModal">
       <div class="modal-content" style="max-width: 680px;">
         <div class="modal-header">
-          <h3 id="studentFormModalTitle"><i class="fas fa-user-plus" style="color: var(--accent);"></i> Add Test Student Record</h3>
+          <h3 id="studentFormModalTitle"><i class="fas fa-user-plus" style="color: var(--accent);"></i> Add Student Record</h3>
           <button style="background:none; border:none; font-size:1.4rem; color:var(--text-light); cursor:pointer;" onclick="closeStudentModal()">&times;</button>
         </div>
         <form id="studentRecordForm" onsubmit="handleStudentFormSubmit(event)">
           <input type="hidden" id="stu_edit_id" value="" />
 
-          <div style="background:rgba(255,95,162,0.06); border:1px solid rgba(255,95,162,0.2); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:15px; font-size:0.82rem; color:var(--text-light);">
-            <i class="fas fa-info-circle" style="color:var(--accent); margin-right:5px;"></i>
-            <strong>Fictional Test Data:</strong> Use clearly fictional information only (e.g. 001, 002, 003). Do not enter real personal data.
-          </div>
+
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
             <div class="form-group">
@@ -322,7 +319,7 @@ window.renderStudentsModule = async function(container) {
   // Modal Handlers
   window.openAddStudentModal = () => {
     document.getElementById('stu_edit_id').value = '';
-    document.getElementById('studentFormModalTitle').innerHTML = `<i class="fas fa-user-plus" style="color:var(--accent);"></i> Add Test Student Record`;
+    document.getElementById('studentFormModalTitle').innerHTML = `<i class="fas fa-user-plus" style="color:var(--accent);"></i> Add Student Record`;
     document.getElementById('studentRecordForm').reset();
     document.getElementById('studentFormModal').classList.add('active');
   };
@@ -330,7 +327,7 @@ window.renderStudentsModule = async function(container) {
   window.openEditStudentModal = (student) => {
     document.getElementById('stu_edit_id').value = student.id;
     document.getElementById('studentFormModalTitle').innerHTML = `<i class="fas fa-user-edit" style="color:var(--accent);"></i> Edit Student: ${student.first_name} ${student.last_name}`;
-    
+
     document.getElementById('stu_lrn').value = student.lrn || '';
     document.getElementById('stu_strand').value = student.track_strand || 'Junior High';
     document.getElementById('stu_first_name').value = student.first_name || '';
@@ -459,7 +456,7 @@ window.renderStudentsModule = async function(container) {
         alert('Student profile updated successfully!');
       } else {
         await ApiClient.post('students', 'create', payload);
-        alert('New test student record created successfully!');
+        alert('Student record created successfully!');
       }
       closeStudentModal();
       window.renderStudentsModule(container);
@@ -471,7 +468,7 @@ window.renderStudentsModule = async function(container) {
 
   // Delete Handler
   window.deleteStudentRecord = async (id, name) => {
-    if (!confirm(`Are you sure you want to delete test student record "${name}" (ID: ${id})?\n\nThis will also remove any related test records.`)) {
+    if (!confirm(`Are you sure you want to delete this student record "${name}" (ID: ${id})?\n\nThis will also remove any related records.`)) {
       return;
     }
 

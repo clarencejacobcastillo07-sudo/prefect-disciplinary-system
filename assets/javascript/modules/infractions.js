@@ -3,7 +3,7 @@
  * Prefect Disciplinary Action System — St. Agnes Academy
  */
 
-window.renderInfractionsModule = async function(container) {
+window.renderInfractionsModule = async function (container) {
   let incidents = [];
   let violations = [];
   let selectedStudent = null;
@@ -224,7 +224,7 @@ window.renderInfractionsModule = async function(container) {
       if (studentsFound.length === 0) {
         statusArea.innerHTML = `
           <div class="alert-message alert-warning-box">
-            <i class="fas fa-exclamation-triangle"></i> No student matching your search was found. <a href="javascript:void(0)" onclick="Router.navigate('students')" style="color:var(--accent); text-decoration:underline; margin-left:5px;">Add Test Student</a>
+            <i class="fas fa-exclamation-triangle"></i> No student matching your search was found. <a href="javascript:void(0)" onclick="Router.navigate('students')" style="color:var(--accent); text-decoration:underline; margin-left:5px;">Add Student</a>
           </div>
         `;
       } else {
@@ -273,7 +273,7 @@ window.renderInfractionsModule = async function(container) {
     document.getElementById('sel_student_lrn').textContent = student.lrn;
     document.getElementById('sel_student_name').textContent = `${student.first_name} ${student.last_name}`;
     document.getElementById('sel_student_grade').textContent = `${student.grade_level} - ${student.section}`;
-    document.getElementById('sel_student_guardian').textContent = student.guardian_name 
+    document.getElementById('sel_student_guardian').textContent = student.guardian_name
       ? `${student.guardian_name} (${student.guardian_phone || 'No Contact'})`
       : 'No Guardian Contact Listed';
 
@@ -300,7 +300,7 @@ window.renderInfractionsModule = async function(container) {
       const alertBox = document.getElementById('modal_validation_alert');
       if (alertBox) alertBox.style.display = 'none';
       modal.classList.add('active');
-      performStudentSearch(''); // Populate initial test students for fast selection
+      performStudentSearch(''); // Populate initial students for fast selection
     }
   };
 
