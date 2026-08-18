@@ -52,7 +52,7 @@ class IncidentModel {
                    s.first_name, s.last_name, s.lrn, s.grade_level, s.section, s.conduct_points,
                    v.title as violation_title, v.category as violation_category, v.code as violation_code, v.demerit_points, v.recommended_sanction,
                    u.full_name as reported_by_name,
-                   p.guardian_name, p.contact_number as parent_phone
+                   p.guardian_name, p.contact_number as parent_phone, p.relationship as parent_relationship
             FROM incident_reports i 
             JOIN students s ON i.student_id = s.id 
             JOIN violations v ON i.violation_id = v.id 
@@ -91,24 +91,69 @@ class IncidentModel {
         return $stmt->execute([':status' => $status, ':id' => $id]);
     }
 
-    public function getAllViolations(): array {
-        $stmt = $this->db->query("SELECT * FROM violations WHERE is_active = TRUE ORDER BY category ASC, code ASC");
+    // Violations Management
+    public function getAllViolations(bool $includeInactive = false): array {
+        if ($includeInactive) {
+            $stmt = $this->db->query("SELECT * FROM violations ORDER BY category ASC, code ASC");
+        } else {
+            $stmt = $this->db->query("SELECT * FROM violations WHERE is_active = 1 OR is_active = TRUE ORDER BY category ASC, code ASC");
+        }
         return $stmt->fetchAll();
+    }
+
+    public function getViolationById(int $id): ?array {
+        $stmt = $this->db->prepare("SELECT * FROM violations WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $v = $stmt->fetch();
+        return $v ?: null;
     }
 
     public function createViolation(array $data): int {
         $stmt = $this->db->prepare("
-            INSERT INTO violations (code, title, description, category, demerit_points, recommended_sanction) 
-            VALUES (:code, :title, :description, :category, :demerit_points, :recommended_sanction)
+            INSERT INTO violations (code, title, description, category, demerit_points, recommended_sanction, is_active) 
+            VALUES (:code, :title, :description, :category, :demerit_points, :recommended_sanction, :is_active)
         ");
         $stmt->execute([
             ':code' => $data['code'],
             ':title' => $data['title'],
             ':description' => $data['description'] ?? '',
             ':category' => $data['category'],
-            ':demerit_points' => $data['demerit_points'],
-            ':recommended_sanction' => $data['recommended_sanction'] ?? ''
+            ':demerit_points' => (int)$data['demerit_points'],
+            ':recommended_sanction' => $data['recommended_sanction'] ?? '',
+            ':is_active' => isset($data['is_active']) ? (int)(bool)$data['is_active'] : 1
         ]);
         return (int)$this->db->lastInsertId();
+    }
+
+    public function updateViolation(int $id, array $data): bool {
+        $stmt = $this->db->prepare("
+            UPDATE violations 
+            SET code = :code,
+                title = :title,
+                description = :description,
+                category = :category,
+                demerit_points = :demerit_points,
+                recommended_sanction = :recommended_sanction,
+                is_active = :is_active
+            WHERE id = :id
+        ");
+        return $stmt->execute([
+            ':code' => $data['code'],
+            ':title' => $data['title'],
+            ':description' => $data['description'] ?? '',
+            ':category' => $data['category'],
+            ':demerit_points' => (int)$data['demerit_points'],
+            ':recommended_sanction' => $data['recommended_sanction'] ?? '',
+            ':is_active' => isset($data['is_active']) ? (int)(bool)$data['is_active'] : 1,
+            ':id' => $id
+        ]);
+    }
+
+    public function toggleViolationActive(int $id, bool $isActive): bool {
+        $stmt = $this->db->prepare("UPDATE violations SET is_active = :is_active WHERE id = :id");
+        return $stmt->execute([
+            ':is_active' => $isActive ? 1 : 0,
+            ':id' => $id
+        ]);
     }
 }

@@ -75,7 +75,7 @@ try {
             handleIncidentRoutes($method, $action, $id);
             break;
         case 'proceedings':
-            handleProceedingsRoutes($method, $action);
+            handleProceedingsRoutes($method, $action, $id);
             break;
         case 'notifications':
             handleNotificationRoutes($method, $action);

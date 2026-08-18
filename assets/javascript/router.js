@@ -38,6 +38,9 @@ class Router {
         case 'dashboard':
           if (window.renderDashboardModule) window.renderDashboardModule(container);
           break;
+        case 'students':
+          if (window.renderStudentsModule) window.renderStudentsModule(container);
+          break;
         case 'infractions':
           if (window.renderInfractionsModule) window.renderInfractionsModule(container);
           break;

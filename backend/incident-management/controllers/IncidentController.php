@@ -48,8 +48,19 @@ class IncidentController {
 
     public function violations(): void {
         AuthMiddleware::authenticate();
-        $violations = $this->service->listViolations();
+        $includeInactive = isset($_GET['all']) && ($_GET['all'] === '1' || $_GET['all'] === 'true');
+        $violations = $this->service->listViolations($includeInactive);
         ResponseHelper::success($violations, 'Violations taxonomy retrieved');
+    }
+
+    public function showViolation(int $id): void {
+        AuthMiddleware::authenticate();
+        try {
+            $violation = $this->service->getViolation($id);
+            ResponseHelper::success($violation, 'Violation retrieved');
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 404);
+        }
     }
 
     public function createViolation(): void {
@@ -60,6 +71,33 @@ class IncidentController {
         try {
             $id = $this->service->createViolation($input, $user);
             ResponseHelper::success(['id' => $id], 'Violation category created', 201);
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 400);
+        }
+    }
+
+    public function updateViolation(int $id): void {
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer']);
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        try {
+            $this->service->updateViolation($id, $input, $user);
+            ResponseHelper::success(null, 'Violation category updated successfully');
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 400);
+        }
+    }
+
+    public function toggleViolationActive(int $id): void {
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer']);
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $isActive = !empty($input['is_active']);
+        try {
+            $this->service->toggleViolationActive($id, $isActive, $user);
+            ResponseHelper::success(null, 'Violation status updated');
         } catch (Exception $e) {
             ResponseHelper::error($e->getMessage(), 400);
         }

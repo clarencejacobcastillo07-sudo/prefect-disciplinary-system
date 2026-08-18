@@ -76,8 +76,16 @@ class IncidentService {
         return $incident;
     }
 
-    public function listViolations(): array {
-        return $this->incidentModel->getAllViolations();
+    public function listViolations(bool $includeInactive = false): array {
+        return $this->incidentModel->getAllViolations($includeInactive);
+    }
+
+    public function getViolation(int $id): array {
+        $v = $this->incidentModel->getViolationById($id);
+        if (!$v) {
+            throw new Exception("Violation category not found.");
+        }
+        return $v;
     }
 
     public function createViolation(array $data, array $user): int {
@@ -87,5 +95,20 @@ class IncidentService {
         $id = $this->incidentModel->createViolation($data);
         AuditLogger::log('CREATE_VIOLATION', 'Violation Setup', "Created violation category {$data['code']} - {$data['title']}", $user['user_id'], $user['full_name']);
         return $id;
+    }
+
+    public function updateViolation(int $id, array $data, array $user): bool {
+        if (empty($data['code']) || empty($data['title']) || empty($data['category']) || !isset($data['demerit_points'])) {
+            throw new Exception("Violation Code, Title, Category, and Demerit Points are required.");
+        }
+        $res = $this->incidentModel->updateViolation($id, $data);
+        AuditLogger::log('UPDATE_VIOLATION', 'Violation Setup', "Updated violation category {$data['code']} - {$data['title']}", $user['user_id'], $user['full_name']);
+        return $res;
+    }
+
+    public function toggleViolationActive(int $id, bool $isActive, array $user): bool {
+        $res = $this->incidentModel->toggleViolationActive($id, $isActive);
+        AuditLogger::log('TOGGLE_VIOLATION', 'Violation Setup', ($isActive ? "Activated" : "Deactivated") . " violation category ID {$id}", $user['user_id'], $user['full_name']);
+        return $res;
     }
 }

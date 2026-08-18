@@ -1,3 +1,8 @@
+/**
+ * Infraction Incident Logging Module
+ * Prefect Disciplinary Action System — St. Agnes Academy
+ */
+
 window.renderInfractionsModule = async function(container) {
   let incidents = [];
   let violations = [];
@@ -9,14 +14,16 @@ window.renderInfractionsModule = async function(container) {
     : { full_name: 'Prefect Officer', role_name: 'Administrator' };
 
   try {
-    const incRes = await ApiClient.get('incidents');
-    const violRes = await ApiClient.get('incidents', 'violations');
+    const [incRes, violRes] = await Promise.all([
+      ApiClient.get('incidents'),
+      ApiClient.get('incidents', 'violations')
+    ]);
     incidents = incRes.data || [];
     violations = violRes.data || [];
   } catch (e) {
-    incidents = [
-      { id: 1, incident_number: 'INC-2026-0001', first_name: 'Juan', last_name: 'Dela Cruz', lrn: '136123450001', violation_title: 'Cutting Classes / Truancy', violation_category: 'Major', location: 'Floor 2 Back Fence', incident_date: '2026-07-20 10:15:00', status: 'Sanctioned' }
-    ];
+    console.error('Error fetching incidents or violations:', e);
+    incidents = [];
+    violations = [];
   }
 
   // Format default current local datetime for input (YYYY-MM-DDTHH:mm)
@@ -40,7 +47,7 @@ window.renderInfractionsModule = async function(container) {
           <tr>
             <th>Incident ID</th>
             <th>Student</th>
-            <th>LRN</th>
+            <th>LRN / Student ID</th>
             <th>Violation</th>
             <th>Category</th>
             <th>Location</th>
@@ -52,14 +59,16 @@ window.renderInfractionsModule = async function(container) {
         <tbody>
           ${incidents.length === 0 ? `
             <tr>
-              <td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">
-                No infraction reports recorded yet. Click <strong>"Log New Infraction"</strong> to record an incident.
+              <td colspan="9" style="text-align:center; color:var(--text-muted); padding:35px;">
+                <i class="fas fa-edit fa-2x" style="margin-bottom:10px; opacity:0.4; display:block;"></i>
+                No infraction reports recorded yet.<br>
+                Click <strong>"Log New Infraction"</strong> to record an incident for a student.
               </td>
             </tr>
           ` : incidents.map(inc => `
             <tr>
               <td><strong>${inc.incident_number}</strong></td>
-              <td>${inc.first_name} ${inc.last_name}</td>
+              <td><strong>${inc.first_name} ${inc.last_name}</strong></td>
               <td><code>${inc.lrn}</code></td>
               <td>${inc.violation_title}</td>
               <td><span class="badge ${inc.violation_category === 'Severe' ? 'badge-danger' : (inc.violation_category === 'Major' ? 'badge-warning' : 'badge-primary')}">${inc.violation_category}</span></td>
@@ -67,7 +76,7 @@ window.renderInfractionsModule = async function(container) {
               <td>${inc.incident_date}</td>
               <td><span class="badge badge-success">${inc.status || 'Pending Review'}</span></td>
               <td>
-                <button class="btn btn-secondary btn-sm" onclick="alert('Incident details:\\nNo: ${inc.incident_number}\\nStudent: ${inc.first_name} ${inc.last_name}\\nViolation: ${inc.violation_title}\\nReported by: ${inc.reported_by_name || 'Prefect Office'}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-secondary btn-sm" title="View Incident Report" onclick="Router.navigate('incident-reports')"><i class="fas fa-eye"></i></button>
               </td>
             </tr>
           `).join('')}
@@ -99,7 +108,7 @@ window.renderInfractionsModule = async function(container) {
               <div class="student-lookup-box">
                 <div class="student-search-input-wrap">
                   <i class="fas fa-search"></i>
-                  <input type="text" id="student_search_query" placeholder="Search Student ID, LRN, or Name..." oninput="handleStudentSearchInput(this.value)" autocomplete="off" />
+                  <input type="text" id="student_search_query" placeholder="Search Student ID (e.g. 001), LRN, or Name..." oninput="handleStudentSearchInput(this.value)" autocomplete="off" />
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="triggerStudentSearch()">
                   <i class="fas fa-search"></i> Search
@@ -132,7 +141,7 @@ window.renderInfractionsModule = async function(container) {
                   <span class="value" id="sel_student_grade">-</span>
                 </div>
                 <div class="selected-student-field">
-                  <span class="label">Parent / Guardian</span>
+                  <span class="label">Parent / Guardian Contact</span>
                   <span class="value" id="sel_student_guardian">-</span>
                 </div>
               </div>
@@ -156,7 +165,7 @@ window.renderInfractionsModule = async function(container) {
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
             <div class="form-group">
               <label>Incident Location <span style="color:var(--danger);">*</span></label>
-              <input type="text" id="inf_location" placeholder="e.g. Science Lab 2 / Gymnasium" required />
+              <input type="text" id="inf_location" placeholder="e.g. High School Bldg / Canteen" required />
             </div>
             <div class="form-group">
               <label>Reporting Officer</label>
@@ -215,7 +224,7 @@ window.renderInfractionsModule = async function(container) {
       if (studentsFound.length === 0) {
         statusArea.innerHTML = `
           <div class="alert-message alert-warning-box">
-            <i class="fas fa-exclamation-triangle"></i> No student matching your search was found.
+            <i class="fas fa-exclamation-triangle"></i> No student matching your search was found. <a href="javascript:void(0)" onclick="Router.navigate('students')" style="color:var(--accent); text-decoration:underline; margin-left:5px;">Add Test Student</a>
           </div>
         `;
       } else {
@@ -251,7 +260,7 @@ window.renderInfractionsModule = async function(container) {
     } catch (err) {
       statusArea.innerHTML = `
         <div class="alert-message alert-danger-box">
-          <i class="fas fa-exclamation-circle"></i> Unable to retrieve student records. Please try again.
+          <i class="fas fa-exclamation-circle"></i> Unable to retrieve student records.
         </div>
       `;
     }
@@ -291,7 +300,7 @@ window.renderInfractionsModule = async function(container) {
       const alertBox = document.getElementById('modal_validation_alert');
       if (alertBox) alertBox.style.display = 'none';
       modal.classList.add('active');
-      performStudentSearch(''); // Populate initial student list for quick selection
+      performStudentSearch(''); // Populate initial test students for fast selection
     }
   };
 
@@ -337,7 +346,7 @@ window.renderInfractionsModule = async function(container) {
       closeLogIncidentModal();
       window.renderInfractionsModule(container);
     } catch (err) {
-      alert('Unable to submit the incident. Please try again. (' + (err.message || 'Server error') + ')');
+      alert('Unable to submit the incident. (' + (err.message || 'Server error') + ')');
       if (btn) btn.disabled = false;
     }
   };

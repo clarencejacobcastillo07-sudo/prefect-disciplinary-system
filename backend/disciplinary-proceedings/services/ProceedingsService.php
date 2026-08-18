@@ -9,8 +9,8 @@ class ProceedingsService {
         $this->model = new ProceedingsModel();
     }
 
-    public function getHearings(): array {
-        return $this->model->getAllHearings();
+    public function getHearings(array $filters = []): array {
+        return $this->model->getAllHearings($filters);
     }
 
     public function scheduleHearing(array $data, array $user): int {
@@ -23,8 +23,17 @@ class ProceedingsService {
         return $id;
     }
 
-    public function getSanctions(): array {
-        return $this->model->getAllSanctions();
+    public function updateHearing(int $id, array $data, array $user): bool {
+        if (empty($data['hearing_date']) || empty($data['hearing_time'])) {
+            throw new Exception("Hearing Date and Hearing Time are required.");
+        }
+        $res = $this->model->updateHearing($id, $data);
+        AuditLogger::log('UPDATE_HEARING', 'Disciplinary Hearing', "Updated hearing ID {$id} (Status: {$data['status']})", $user['user_id'], $user['full_name']);
+        return $res;
+    }
+
+    public function getSanctions(array $filters = []): array {
+        return $this->model->getAllSanctions($filters);
     }
 
     public function createSanction(array $data, array $user): int {
@@ -37,8 +46,14 @@ class ProceedingsService {
         return $id;
     }
 
-    public function getClearanceHolds(): array {
-        return $this->model->getAllClearanceHolds();
+    public function updateSanction(int $id, array $data, array $user): bool {
+        $res = $this->model->updateSanction($id, $data);
+        AuditLogger::log('UPDATE_SANCTION', 'Sanction Management', "Updated sanction ID {$id} (Status: {$data['status']})", $user['user_id'], $user['full_name']);
+        return $res;
+    }
+
+    public function getClearanceHolds(array $filters = []): array {
+        return $this->model->getAllClearanceHolds($filters);
     }
 
     public function setClearanceHold(array $data, array $user): bool {
@@ -52,20 +67,37 @@ class ProceedingsService {
         return true;
     }
 
-    public function getReformationPrograms(): array {
-        return $this->model->getAllReformationPrograms();
+    public function getReformationPrograms(array $filters = []): array {
+        return $this->model->getAllReformationPrograms($filters);
     }
 
     public function assignReformation(array $data, array $user): int {
         if (empty($data['student_id']) || empty($data['program_title'])) {
             throw new Exception("Student ID and Program Title are required.");
         }
+        $data['assigned_supervisor'] = $data['assigned_supervisor'] ?? $user['user_id'];
         $id = $this->model->assignReformationProgram($data);
         AuditLogger::log('ASSIGN_REFORMATION', 'Reformation Program', "Assigned program {$data['program_title']} to Student ID {$data['student_id']}", $user['user_id'], $user['full_name']);
         return $id;
     }
 
+    public function updateReformation(int $id, array $data, array $user): bool {
+        $res = $this->model->updateReformationProgram($id, $data);
+        AuditLogger::log('UPDATE_REFORMATION', 'Reformation Program', "Updated reformation program ID {$id} (Status: {$data['status']})", $user['user_id'], $user['full_name']);
+        return $res;
+    }
+
     public function getPointsHistory(): array {
         return $this->model->getBehaviorPointsHistory();
+    }
+
+    public function addPoints(array $data, array $user): int {
+        if (empty($data['student_id']) || !isset($data['points_change']) || empty($data['point_type']) || empty($data['reason'])) {
+            throw new Exception("Student ID, Points Amount, Point Type, and Reason are required.");
+        }
+        $data['created_by'] = $user['user_id'];
+        $id = $this->model->addManualBehaviorPoints($data);
+        AuditLogger::log('ADJUST_POINTS', 'Behavior Points', "Adjusted points ({$data['points_change']} pts, {$data['point_type']}) for Student ID {$data['student_id']}", $user['user_id'], $user['full_name']);
+        return $id;
     }
 }

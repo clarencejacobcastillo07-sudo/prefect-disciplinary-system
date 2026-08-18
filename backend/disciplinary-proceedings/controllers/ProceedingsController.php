@@ -13,7 +13,11 @@ class ProceedingsController {
 
     public function hearings(): void {
         AuthMiddleware::authenticate();
-        $hearings = $this->service->getHearings();
+        $filters = [
+            'student_id' => $_GET['student_id'] ?? '',
+            'status'     => $_GET['status'] ?? ''
+        ];
+        $hearings = $this->service->getHearings($filters);
         ResponseHelper::success($hearings, 'Hearings retrieved');
     }
 
@@ -29,9 +33,24 @@ class ProceedingsController {
         }
     }
 
+    public function updateHearing(int $id): void {
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer', 'Principal']);
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        try {
+            $this->service->updateHearing($id, $input, $user);
+            ResponseHelper::success(null, 'Hearing updated successfully');
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 400);
+        }
+    }
+
     public function sanctions(): void {
         AuthMiddleware::authenticate();
-        $sanctions = $this->service->getSanctions();
+        $filters = [
+            'student_id' => $_GET['student_id'] ?? ''
+        ];
+        $sanctions = $this->service->getSanctions($filters);
         ResponseHelper::success($sanctions, 'Sanctions retrieved');
     }
 
@@ -47,9 +66,24 @@ class ProceedingsController {
         }
     }
 
+    public function updateSanction(int $id): void {
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer', 'Principal']);
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        try {
+            $this->service->updateSanction($id, $input, $user);
+            ResponseHelper::success(null, 'Sanction updated successfully');
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 400);
+        }
+    }
+
     public function clearance(): void {
         AuthMiddleware::authenticate();
-        $holds = $this->service->getClearanceHolds();
+        $filters = [
+            'is_active' => $_GET['is_active'] ?? ''
+        ];
+        $holds = $this->service->getClearanceHolds($filters);
         ResponseHelper::success($holds, 'Clearance holds retrieved');
     }
 
@@ -67,7 +101,10 @@ class ProceedingsController {
 
     public function reformation(): void {
         AuthMiddleware::authenticate();
-        $programs = $this->service->getReformationPrograms();
+        $filters = [
+            'student_id' => $_GET['student_id'] ?? ''
+        ];
+        $programs = $this->service->getReformationPrograms($filters);
         ResponseHelper::success($programs, 'Reformation programs retrieved');
     }
 
@@ -83,9 +120,33 @@ class ProceedingsController {
         }
     }
 
+    public function updateReformation(int $id): void {
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer', 'Guidance Counselor']);
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        try {
+            $this->service->updateReformation($id, $input, $user);
+            ResponseHelper::success(null, 'Reformation program updated');
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 400);
+        }
+    }
+
     public function pointsHistory(): void {
         AuthMiddleware::authenticate();
         $history = $this->service->getPointsHistory();
         ResponseHelper::success($history, 'Behavior points ledger retrieved');
+    }
+
+    public function addPoints(): void {
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer', 'Guidance Counselor']);
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        try {
+            $id = $this->service->addPoints($input, $user);
+            ResponseHelper::success(['id' => $id], 'Conduct points updated successfully', 201);
+        } catch (Exception $e) {
+            ResponseHelper::error($e->getMessage(), 400);
+        }
     }
 }

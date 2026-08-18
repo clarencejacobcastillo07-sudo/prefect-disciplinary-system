@@ -46,6 +46,9 @@
                 </a>
 
                 <div class="menu-category">Discipline &amp; Incidents</div>
+                <a class="nav-item" data-module="students" onclick="Router.navigate('students')">
+                    <i class="fas fa-user-graduate"></i> <span>Student Records</span>
+                </a>
                 <a class="nav-item" data-module="infractions" onclick="Router.navigate('infractions')">
                     <i class="fas fa-edit"></i> <span>Infraction Logging</span>
                 </a>
@@ -143,6 +146,7 @@
     <script src="../assets/javascript/global-search.js"></script>
 
     <!-- Module Implementation Scripts -->
+    <script src="../assets/javascript/modules/students.js"></script>
     <script src="../assets/javascript/modules/dashboard.js"></script>
     <script src="../assets/javascript/modules/infractions.js"></script>
     <script src="../assets/javascript/modules/behavior.js"></script>

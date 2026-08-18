@@ -10,7 +10,7 @@ class StudentModel {
 
     public function getAll(array $filters = []): array {
         $sql = "
-            SELECT s.*, p.guardian_name, p.contact_number as guardian_phone, p.email as guardian_email, p.relationship 
+            SELECT s.*, p.guardian_name, p.contact_number as guardian_phone, p.email as guardian_email, p.relationship, p.address as guardian_address 
             FROM students s 
             LEFT JOIN parents p ON s.id = p.student_id 
             WHERE 1=1
@@ -31,7 +31,7 @@ class StudentModel {
             $params[':clearance_status'] = $filters['clearance_status'];
         }
 
-        $sql .= " ORDER BY s.grade_level ASC, s.last_name ASC";
+        $sql .= " ORDER BY s.id ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -39,7 +39,7 @@ class StudentModel {
 
     public function getById(int $id): ?array {
         $stmt = $this->db->prepare("
-            SELECT s.*, p.id as parent_id, p.guardian_name, p.contact_number as guardian_phone, p.email as guardian_email, p.relationship, p.address 
+            SELECT s.*, p.id as parent_id, p.guardian_name, p.contact_number as guardian_phone, p.email as guardian_email, p.relationship, p.address as guardian_address 
             FROM students s 
             LEFT JOIN parents p ON s.id = p.student_id 
             WHERE s.id = :id
@@ -61,24 +61,24 @@ class StudentModel {
                 ':first_name' => $studentData['first_name'],
                 ':last_name' => $studentData['last_name'],
                 ':middle_name' => $studentData['middle_name'] ?? null,
-                ':grade_level' => $studentData['grade_level'],
-                ':section' => $studentData['section'],
+                ':grade_level' => $studentData['grade_level'] ?? 'Grade 10',
+                ':section' => $studentData['section'] ?? 'Section A',
                 ':track_strand' => $studentData['track_strand'] ?? 'General',
                 ':gender' => $studentData['gender'] ?? 'Other',
-                ':conduct_points' => $studentData['conduct_points'] ?? 100,
+                ':conduct_points' => isset($studentData['conduct_points']) ? (int)$studentData['conduct_points'] : 100,
                 ':status' => $studentData['status'] ?? 'Good Standing',
                 ':clearance_status' => $studentData['clearance_status'] ?? 'Cleared'
             ]);
             $studentId = (int)$this->db->lastInsertId();
 
-            if (!empty($parentData['guardian_name'])) {
+            if (!empty($parentData['guardian_name']) || !empty($parentData['contact_number'])) {
                 $pStmt = $this->db->prepare("
                     INSERT INTO parents (student_id, guardian_name, relationship, contact_number, email, address) 
                     VALUES (:student_id, :guardian_name, :relationship, :contact_number, :email, :address)
                 ");
                 $pStmt->execute([
                     ':student_id' => $studentId,
-                    ':guardian_name' => $parentData['guardian_name'],
+                    ':guardian_name' => $parentData['guardian_name'] ?? 'Guardian',
                     ':relationship' => $parentData['relationship'] ?? 'Parent',
                     ':contact_number' => $parentData['contact_number'] ?? '',
                     ':email' => $parentData['email'] ?? null,
@@ -92,6 +92,91 @@ class StudentModel {
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+    public function update(int $id, array $studentData, array $parentData): bool {
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE students 
+                SET lrn = :lrn,
+                    first_name = :first_name,
+                    last_name = :last_name,
+                    middle_name = :middle_name,
+                    grade_level = :grade_level,
+                    section = :section,
+                    track_strand = :track_strand,
+                    gender = :gender,
+                    conduct_points = :conduct_points,
+                    status = :status,
+                    clearance_status = :clearance_status,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':lrn' => $studentData['lrn'],
+                ':first_name' => $studentData['first_name'],
+                ':last_name' => $studentData['last_name'],
+                ':middle_name' => $studentData['middle_name'] ?? null,
+                ':grade_level' => $studentData['grade_level'] ?? 'Grade 10',
+                ':section' => $studentData['section'] ?? 'Section A',
+                ':track_strand' => $studentData['track_strand'] ?? 'General',
+                ':gender' => $studentData['gender'] ?? 'Other',
+                ':conduct_points' => isset($studentData['conduct_points']) ? (int)$studentData['conduct_points'] : 100,
+                ':status' => $studentData['status'] ?? 'Good Standing',
+                ':clearance_status' => $studentData['clearance_status'] ?? 'Cleared',
+                ':id' => $id
+            ]);
+
+            // Check if parent record exists
+            $checkParent = $this->db->prepare("SELECT id FROM parents WHERE student_id = :student_id");
+            $checkParent->execute([':student_id' => $id]);
+            $existingParentId = $checkParent->fetchColumn();
+
+            if ($existingParentId) {
+                $pStmt = $this->db->prepare("
+                    UPDATE parents 
+                    SET guardian_name = :guardian_name,
+                        relationship = :relationship,
+                        contact_number = :contact_number,
+                        email = :email,
+                        address = :address
+                    WHERE id = :parent_id
+                ");
+                $pStmt->execute([
+                    ':guardian_name' => $parentData['guardian_name'] ?? 'Guardian',
+                    ':relationship' => $parentData['relationship'] ?? 'Parent',
+                    ':contact_number' => $parentData['contact_number'] ?? '',
+                    ':email' => $parentData['email'] ?? null,
+                    ':address' => $parentData['address'] ?? null,
+                    ':parent_id' => $existingParentId
+                ]);
+            } elseif (!empty($parentData['guardian_name']) || !empty($parentData['contact_number'])) {
+                $pStmt = $this->db->prepare("
+                    INSERT INTO parents (student_id, guardian_name, relationship, contact_number, email, address) 
+                    VALUES (:student_id, :guardian_name, :relationship, :contact_number, :email, :address)
+                ");
+                $pStmt->execute([
+                    ':student_id' => $id,
+                    ':guardian_name' => $parentData['guardian_name'] ?? 'Guardian',
+                    ':relationship' => $parentData['relationship'] ?? 'Parent',
+                    ':contact_number' => $parentData['contact_number'] ?? '',
+                    ':email' => $parentData['email'] ?? null,
+                    ':address' => $parentData['address'] ?? null
+                ]);
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function delete(int $id): bool {
+        $stmt = $this->db->prepare("DELETE FROM students WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
     }
 
     public function updateConductPoints(int $studentId, int $pointsDelta): bool {

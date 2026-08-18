@@ -6,12 +6,27 @@ function handleIncidentRoutes(string $method, string $action, ?int $id = null): 
 
     if ($action === 'violations') {
         if ($method === 'GET') {
-            $controller->violations();
+            if ($id) {
+                $controller->showViolation($id);
+            } else {
+                $controller->violations();
+            }
         } elseif ($method === 'POST') {
-            $controller->createViolation();
+            if ($id) {
+                $controller->updateViolation($id);
+            } else {
+                $controller->createViolation();
+            }
+        } elseif ($method === 'PUT' && $id) {
+            $controller->updateViolation($id);
         } else {
             ResponseHelper::error('Method not allowed for violations', 405);
         }
+        return;
+    }
+
+    if ($action === 'toggle-violation' && $id && ($method === 'POST' || $method === 'PUT')) {
+        $controller->toggleViolationActive($id);
         return;
     }
 
