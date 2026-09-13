@@ -51,7 +51,7 @@ class StudentController {
             ResponseHelper::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
             error_log('[PDS StudentController] Create error: ' . $e->getMessage());
-            ResponseHelper::error('Failed to create student record.', 400);
+            ResponseHelper::error('Create failed: ' . $e->getMessage(), 400);
         }
     }
 
