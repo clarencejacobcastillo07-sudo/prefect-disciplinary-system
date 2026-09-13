@@ -31,56 +31,85 @@ class Database {
         if (self::$instance === null) {
             self::loadEnv();
 
+            $appEnv   = strtolower($_ENV['APP_ENV'] ?? getenv('APP_ENV') ?: 'production');
+            $dbDriver = strtolower($_ENV['DB_DRIVER'] ?? getenv('DB_DRIVER') ?: 'pgsql');
+
+            // SQLite is ONLY permitted in development mode when explicitly configured
+            if ($appEnv === 'development' && $dbDriver === 'sqlite') {
+                try {
+                    $dbDir = __DIR__ . '/../../database';
+                    if (!is_dir($dbDir)) {
+                        mkdir($dbDir, 0755, true);
+                    }
+                    $dbFile = $dbDir . '/database.sqlite';
+                    $needsSetup = !file_exists($dbFile) || filesize($dbFile) === 0;
+
+                    $pdo = new PDO("sqlite:{$dbFile}");
+                    $pdo->setAttribute(PDO::ATTR_ERRMODE,            PDO::ERRMODE_EXCEPTION);
+                    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+                    if ($needsSetup) {
+                        self::setupLocalSqliteDatabase($pdo);
+                    } else {
+                        // Ensure system_settings table exists
+                        $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings (
+                            setting_key   TEXT PRIMARY KEY,
+                            setting_value TEXT,
+                            description   TEXT,
+                            updated_at    TEXT DEFAULT CURRENT_TIMESTAMP
+                        )");
+                    }
+
+                    self::$instance = $pdo;
+                    return self::$instance;
+                } catch (PDOException $e) {
+                    error_log("[PDS Database] Local development SQLite connection failed: " . $e->getMessage());
+                    http_response_code(503);
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'status'  => 'error',
+                        'code'    => 503,
+                        'message' => 'Development database service unavailable.'
+                    ]);
+                    exit();
+                }
+            }
+
+            // Production & Default: Supabase PostgreSQL (Fail-closed on error)
             $pgHost = $_ENV['SUPABASE_DB_HOST'] ?? getenv('SUPABASE_DB_HOST') ?: ($_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: null);
             $pgPort = $_ENV['SUPABASE_DB_PORT'] ?? getenv('SUPABASE_DB_PORT') ?: ($_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '5432');
             $pgName = $_ENV['SUPABASE_DB_NAME'] ?? getenv('SUPABASE_DB_NAME') ?: ($_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'postgres');
             $pgUser = $_ENV['SUPABASE_DB_USER'] ?? getenv('SUPABASE_DB_USER') ?: ($_ENV['DB_USER'] ?? getenv('DB_USER') ?: null);
             $pgPass = $_ENV['SUPABASE_DB_PASSWORD'] ?? getenv('SUPABASE_DB_PASSWORD') ?: ($_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: null);
 
-            // Attempt PostgreSQL connection if host & user are specified
             if ($pgHost && $pgUser) {
                 try {
                     $dsn = "pgsql:host={$pgHost};port={$pgPort};dbname={$pgName};sslmode=require";
-                    $pdo = new PDO($dsn, $pgUser, $pgPass, [PDO::ATTR_TIMEOUT => 3]);
-                    $pdo->setAttribute(PDO::ATTR_ERRMODE,            PDO::ERRMODE_EXCEPTION);
-                    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-                    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES,   false);
+                    $pdo = new PDO($dsn, $pgUser, $pgPass, [
+                        PDO::ATTR_TIMEOUT => 5,
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES => false
+                    ]);
 
                     self::$instance = $pdo;
                     return self::$instance;
                 } catch (PDOException $e) {
-                    error_log("[PDS Database] PostgreSQL connection failed: " . $e->getMessage() . " — Falling back to local database instance.");
+                    error_log("[PDS Database] PostgreSQL connection error: Connection failed to database host.");
                 }
+            } else {
+                error_log("[PDS Database] Missing database connection credentials.");
             }
 
-            // Fallback to local SQLite instance for local offline development
-            try {
-                $dbDir = __DIR__ . '/../../database';
-                if (!is_dir($dbDir)) {
-                    mkdir($dbDir, 0755, true);
-                }
-                $dbFile = $dbDir . '/database.sqlite';
-                $needsSetup = !file_exists($dbFile) || filesize($dbFile) === 0;
-
-                $pdo = new PDO("sqlite:{$dbFile}");
-                $pdo->setAttribute(PDO::ATTR_ERRMODE,            PDO::ERRMODE_EXCEPTION);
-                $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
-                if ($needsSetup) {
-                    self::setupLocalSqliteDatabase($pdo);
-                }
-
-                self::$instance = $pdo;
-            } catch (PDOException $e) {
-                http_response_code(503);
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Database connection failed.',
-                    'detail'  => $e->getMessage()
-                ]);
-                exit;
-            }
+            // Fail-closed: Never switch silently to SQLite in production
+            http_response_code(503);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status'  => 'error',
+                'code'    => 503,
+                'message' => 'Database service unavailable. Please contact system administrator.'
+            ]);
+            exit();
         }
         return self::$instance;
     }

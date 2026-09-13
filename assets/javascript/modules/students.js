@@ -1,37 +1,43 @@
 /**
- * Student Records Module (Development & Testing Source)
- * Prefect Disciplinary Action System — St. Agnes Academy
- * 
- * Allows authorized users to:
- * - View students
- * - Search students by ID, LRN, Name, Grade, Section
- * - Add new students
- * - Edit student profiles & guardian contacts
- * - View comprehensive student standing & disciplinary summary
- * - Delete student records
+ * Student Records Module
+ * System: Prefect Disciplinary Action System
+ * Client: St. Agnes Academy of Caloocan Inc.
  */
 
 window.renderStudentsModule = async function (container) {
   let students = [];
-  let currentSearch = '';
-  let currentGrade = '';
+  let loadError = null;
+  const canManage = typeof AuthManager !== 'undefined' && AuthManager.checkPermission(['Administrator', 'Prefect Officer']);
 
   try {
-    const res = await ApiClient.get('students', 'list');
+    const res = await ApiClient.get('students');
     students = res.data || [];
   } catch (e) {
     console.error('Error fetching students:', e);
+    loadError = e;
     students = [];
   }
 
-  const renderTable = (list) => {
+  const renderTable = (list, error = null) => {
+    if (error) {
+      return `
+        <tr>
+          <td colspan="8" style="text-align:center; color:var(--danger); padding:40px 20px;">
+            <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom:12px; display:block; opacity:0.85;"></i>
+            <strong style="font-size:1rem; display:block; margin-bottom:6px;">Unable to load student records.</strong>
+            <span style="font-size:0.83rem; color:var(--text-muted);">${error.message || 'Please check your network connection or contact the administrator.'}</span>
+          </td>
+        </tr>
+      `;
+    }
+
     if (list.length === 0) {
       return `
         <tr>
           <td colspan="8" style="text-align:center; color:var(--text-muted); padding:35px;">
             <i class="fas fa-user-graduate fa-2x" style="margin-bottom:10px; opacity:0.4; display:block;"></i>
             No student records found matching your criteria.<br>
-            Click <strong>"Add Student"</strong> to create a new record.
+            ${canManage ? 'Click <strong>"Add Student"</strong> to create a new record.' : ''}
           </td>
         </tr>
       `;
@@ -81,12 +87,14 @@ window.renderStudentsModule = async function (container) {
               <button class="btn btn-secondary btn-sm" title="View Profile & Disciplinary History" onclick='viewStudentDetails(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
                 <i class="fas fa-eye"></i>
               </button>
+              ${canManage ? `
               <button class="btn btn-secondary btn-sm" title="Edit Student" onclick='openEditStudentModal(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
                 <i class="fas fa-edit"></i>
               </button>
               <button class="btn btn-secondary btn-sm" style="color:var(--danger);" title="Delete Student" onclick="deleteStudentRecord(${s.id}, '${s.first_name} ${s.last_name}')">
                 <i class="fas fa-trash-alt"></i>
               </button>
+              ` : ''}
             </div>
           </td>
         </tr>
@@ -104,11 +112,13 @@ window.renderStudentsModule = async function (container) {
           Manage student profiles, conduct standings, and guardian contact details for disciplinary proceedings.
         </p>
       </div>
+      ${canManage ? `
       <div style="display:flex; gap:10px;">
         <button class="btn btn-primary" onclick="openAddStudentModal()">
           <i class="fas fa-user-plus"></i> Add Student
         </button>
       </div>
+      ` : ''}
     </div>
 
     <!-- Filters & Search Toolbar -->
@@ -157,7 +167,7 @@ window.renderStudentsModule = async function (container) {
           </tr>
         </thead>
         <tbody id="studentRecordsTableBody">
-          ${renderTable(students)}
+          ${renderTable(students, loadError)}
         </tbody>
       </table>
     </div>
@@ -171,8 +181,6 @@ window.renderStudentsModule = async function (container) {
         </div>
         <form id="studentRecordForm" onsubmit="handleStudentFormSubmit(event)">
           <input type="hidden" id="stu_edit_id" value="" />
-
-
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
             <div class="form-group">
@@ -298,11 +306,13 @@ window.renderStudentsModule = async function (container) {
     const clearance = document.getElementById('student_clearance_filter')?.value || '';
 
     try {
-      const res = await ApiClient.get('students', 'list', null, { search: q, grade_level: grade, clearance_status: clearance });
+      const res = await ApiClient.get('students', '', null, { search: q, grade_level: grade, clearance_status: clearance });
       const tableBody = document.getElementById('studentRecordsTableBody');
       if (tableBody) tableBody.innerHTML = renderTable(res.data || []);
     } catch (e) {
       console.error('Filter error:', e);
+      const tableBody = document.getElementById('studentRecordsTableBody');
+      if (tableBody) tableBody.innerHTML = renderTable([], e);
     }
   };
 
@@ -408,18 +418,26 @@ window.renderStudentsModule = async function (container) {
           <i class="fas fa-bolt"></i> Quick Disciplinary Actions for this Student
         </h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          ${AuthManager.checkPermission(['Administrator', 'Prefect Officer']) ? `
           <button class="btn btn-primary btn-sm" onclick="closeStudentDetailsModal(); Router.navigate('infractions');">
             <i class="fas fa-edit"></i> Log Infraction
           </button>
+          ` : ''}
+          ${AuthManager.checkPermission(['Administrator', 'Prefect Officer', 'Guidance Counselor']) ? `
           <button class="btn btn-secondary btn-sm" onclick="closeStudentDetailsModal(); Router.navigate('points');">
             <i class="fas fa-star"></i> Behavior Points
           </button>
+          ` : ''}
+          ${AuthManager.checkPermission(['Administrator', 'Prefect Officer']) ? `
           <button class="btn btn-secondary btn-sm" onclick="closeStudentDetailsModal(); Router.navigate('clearance');">
             <i class="fas fa-lock"></i> Clearance Hold
           </button>
+          ` : ''}
+          ${AuthManager.checkPermission(['Administrator', 'Prefect Officer', 'Guidance Counselor']) ? `
           <button class="btn btn-secondary btn-sm" onclick="closeStudentDetailsModal(); Router.navigate('notifications');">
             <i class="fas fa-sms"></i> Send SMS Notice
           </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -452,10 +470,10 @@ window.renderStudentsModule = async function (container) {
 
     try {
       if (editId) {
-        await ApiClient.post('students', 'update', payload, { id: editId });
+        await ApiClient.put('students', '', editId, payload);
         alert('Student profile updated successfully!');
       } else {
-        await ApiClient.post('students', 'create', payload);
+        await ApiClient.post('students', '', payload);
         alert('Student record created successfully!');
       }
       closeStudentModal();
@@ -473,7 +491,7 @@ window.renderStudentsModule = async function (container) {
     }
 
     try {
-      await ApiClient.post('students', 'delete', {}, { id: id });
+      await ApiClient.delete('students', '', id);
       alert(`Student record "${name}" deleted.`);
       window.renderStudentsModule(container);
     } catch (err) {
@@ -481,3 +499,4 @@ window.renderStudentsModule = async function (container) {
     }
   };
 };
+

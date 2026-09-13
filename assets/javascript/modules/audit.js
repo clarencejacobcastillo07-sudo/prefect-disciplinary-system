@@ -1,27 +1,33 @@
 window.renderAuditModule = async function(container) {
   let logs = [];
+  let loadError = null;
   try {
     const res = await ApiClient.get('reports', 'audit');
     logs = res.data || [];
   } catch (e) {
-    logs = [
-      { id: 1,  user_name: 'Mr. Ricardo Santos',    action: 'CREATE_INCIDENT',    module: 'Incident Management',  description: 'Filed incident report INC-2026-0001 against Juan Dela Cruz (Grade 10) for Cutting Classes',         ip_address: '127.0.0.1', created_at: '2026-07-20 10:15:00' },
-      { id: 2,  user_name: 'Mr. Ricardo Santos',    action: 'FLAG_CLEARANCE',     module: 'Clearance Hold',        description: 'Flagged clearance hold for Juan Dela Cruz pending parent acknowledgment slip',                      ip_address: '127.0.0.1', created_at: '2026-07-20 10:16:00' },
-      { id: 3,  user_name: 'Mr. Ricardo Santos',    action: 'CREATE_SANCTION',    module: 'Disciplinary Hearings', description: 'Issued 1-Day In-School Suspension & Reflection Paper to Juan Dela Cruz (INC-2026-0001)',            ip_address: '127.0.0.1', created_at: '2026-07-20 10:18:00' },
-      { id: 4,  user_name: 'Mr. Ricardo Santos',    action: 'SEND_SMS',           module: 'Parent Notification',   description: 'Sent SMS to parent Pedro Dela Cruz regarding INC-2026-0001 cutting classes incident',               ip_address: '127.0.0.1', created_at: '2026-07-20 10:19:00' },
-      { id: 5,  user_name: 'Ms. Maria Teresa Cruz', action: 'CREATE_INCIDENT',    module: 'Incident Management',   description: 'Filed incident report INC-2026-0002 against Mark Anthony Bautista (Grade 9) for Bullying',         ip_address: '127.0.0.1', created_at: '2026-07-22 13:30:00' },
-      { id: 6,  user_name: 'Mr. Ricardo Santos',    action: 'FLAG_CLEARANCE',     module: 'Clearance Hold',        description: 'Flagged clearance hold for Mark Anthony Bautista pending investigation and hearing',                 ip_address: '127.0.0.1', created_at: '2026-07-22 13:32:00' },
-      { id: 7,  user_name: 'Mr. Ricardo Santos',    action: 'SCHEDULE_HEARING',   module: 'Disciplinary Hearings', description: 'Scheduled disciplinary hearing on 2026-08-05 for INC-2026-0002 (Bullying case)',                   ip_address: '127.0.0.1', created_at: '2026-07-22 13:45:00' },
-      { id: 8,  user_name: 'Mr. Ricardo Santos',    action: 'SEND_SMS',           module: 'Parent Notification',   description: 'Sent SMS to parent Antonio Bautista regarding hearing on 2026-08-05',                              ip_address: '127.0.0.1', created_at: '2026-07-22 13:47:00' },
-      { id: 9,  user_name: 'Ms. Maria Teresa Cruz', action: 'ASSIGN_REFORMATION', module: 'Reformation Program',   description: 'Assigned Campus Eco-Cleanliness & Reflection program to Juan Dela Cruz (10 hrs)',                   ip_address: '127.0.0.1', created_at: '2026-07-21 09:30:00' },
-      { id: 10, user_name: 'Ms. Maria Teresa Cruz', action: 'ASSIGN_REFORMATION', module: 'Reformation Program',   description: 'Assigned Peer Sensitivity & Behavior Coaching to Mark Anthony Bautista (8 hrs)',                   ip_address: '127.0.0.1', created_at: '2026-07-23 10:00:00' },
-      { id: 11, user_name: 'Mr. Ricardo Santos',    action: 'CREATE_INCIDENT',    module: 'Incident Management',   description: 'Filed incident report INC-2026-0003 against Christian Navarro (Grade 8) for Brawling',             ip_address: '127.0.0.1', created_at: '2026-07-25 15:45:00' },
-      { id: 12, user_name: 'Mr. Ricardo Santos',    action: 'FLAG_CLEARANCE',     module: 'Clearance Hold',        description: 'Flagged clearance hold for Christian Navarro pending Disciplinary Board resolution',                ip_address: '127.0.0.1', created_at: '2026-07-25 15:47:00' },
-      { id: 13, user_name: 'Mr. Ricardo Santos',    action: 'SCHEDULE_HEARING',   module: 'Disciplinary Hearings', description: 'Scheduled escalated hearing on 2026-08-10 for INC-2026-0003 (Brawling — Principal presiding)',     ip_address: '127.0.0.1', created_at: '2026-07-25 16:00:00' },
-      { id: 14, user_name: 'Mr. Ricardo Santos',    action: 'SEND_SMS',           module: 'Parent Notification',   description: 'Sent urgent SMS to parent Roberto Navarro regarding brawling incident INC-2026-0003',               ip_address: '127.0.0.1', created_at: '2026-07-25 16:05:00' },
-      { id: 15, user_name: 'System Administrator',  action: 'CREATE_USER',        module: 'User Management',       description: 'Created user accounts for all staff roles during initial system setup',                            ip_address: '127.0.0.1', created_at: '2026-06-01 08:00:00' }
-    ];
+    console.error('Error fetching audit logs:', e);
+    loadError = e;
+    logs = [];
   }
+
+  if (loadError) {
+    container.innerHTML = `
+      <div class="card card-dark" style="padding:40px; text-align:center; max-width:600px; margin:40px auto;">
+        <div style="width:60px; height:60px; border-radius:50%; background:rgba(239,68,68,0.15); color:var(--danger); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto; font-size:1.5rem;">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 style="color:var(--text-light); margin-bottom:8px; font-size:1.2rem;">Unable to Load Audit Trail</h3>
+        <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px;">
+          ${loadError.message || 'Access restricted to Administrator role or server connection failure.'}
+        </p>
+        <button class="btn btn-primary" onclick="Router.navigate('dashboard')">
+          <i class="fas fa-arrow-left"></i> Return to Dashboard
+        </button>
+      </div>
+    `;
+    return;
+  }
+
 
   const actionColorMap = {
     'CREATE_INCIDENT':    'badge-danger',

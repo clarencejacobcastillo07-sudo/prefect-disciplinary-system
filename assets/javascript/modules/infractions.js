@@ -11,7 +11,7 @@ window.renderInfractionsModule = async function (container) {
 
   const currentUser = typeof AuthManager !== 'undefined'
     ? AuthManager.getCurrentUser()
-    : { full_name: 'Prefect Officer', role_name: 'Administrator' };
+    : null;
 
   try {
     const [incRes, violRes] = await Promise.all([

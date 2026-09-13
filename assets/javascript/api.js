@@ -43,15 +43,42 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      const resData = await response.json();
+      let resData = null;
+      try {
+        resData = await response.json();
+      } catch (jsonErr) {
+        // Non-JSON response
+        const err = new Error(`Server returned invalid response (HTTP ${response.status})`);
+        err.status = response.status;
+        err.code = response.status;
+        throw err;
+      }
+
+      if (response.status === 401) {
+        // Clear invalid or expired session state
+        localStorage.removeItem('saac_auth_token');
+        localStorage.removeItem('saac_user');
+        if (!window.location.pathname.endsWith('login.php') && !window.location.pathname.endsWith('login.html')) {
+          window.location.href = 'login.php?session_expired=1';
+        }
+        const authErr = new Error(resData.message || 'Session expired or unauthorized. Please log in again.');
+        authErr.status = 401;
+        authErr.code = 401;
+        throw authErr;
+      }
 
       if (!response.ok || resData.status === 'error') {
-        throw new Error(resData.message || 'API Server Error');
+        const errorMsg = resData.message || `API Error (${response.status})`;
+        const err = new Error(errorMsg);
+        err.status = response.status;
+        err.code = resData.code || response.status;
+        err.detail = resData.data || resData.errors;
+        throw err;
       }
 
       return resData;
     } catch (err) {
-      console.error(`[API Error] Service: ${service}, Action: ${action}`, err);
+      console.error(`[API Error] Service: ${service}, Action: ${action} [${err.status || 500}]`, err);
       throw err;
     }
   }
@@ -74,3 +101,4 @@ class ApiClient {
 }
 
 window.ApiClient = ApiClient;
+

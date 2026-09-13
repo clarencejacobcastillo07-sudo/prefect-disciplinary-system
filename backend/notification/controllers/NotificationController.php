@@ -12,10 +12,12 @@ class NotificationController {
     }
 
     public function logs(): void {
-        AuthMiddleware::authenticate();
+        $user = AuthMiddleware::authenticate();
+        RBACMiddleware::checkRole($user, ['Administrator', 'Prefect Officer', 'Guidance Counselor']);
         $logs = $this->service->getLogs();
         ResponseHelper::success($logs, 'SMS alert logs retrieved');
     }
+
 
     public function send(): void {
         $user = AuthMiddleware::authenticate();
@@ -33,8 +35,9 @@ class NotificationController {
         try {
             $res = $this->service->sendSMS($studentId, $phone, $message, $user['user_id']);
             ResponseHelper::success($res, 'SMS notification sent / queued via Semaphore abstraction layer.');
-        } catch (Exception $e) {
-            ResponseHelper::error($e->getMessage(), 500);
+        } catch (\Throwable $e) {
+            error_log('[PDS NotificationController] Send error: ' . $e->getMessage());
+            ResponseHelper::error('Failed to send SMS notification.', 500);
         }
     }
 }

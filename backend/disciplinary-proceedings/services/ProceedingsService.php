@@ -5,87 +5,171 @@ require_once __DIR__ . '/../../helpers/AuditLogger.php';
 class ProceedingsService {
     private ProceedingsModel $model;
 
+    // Field whitelists — prevents mass assignment at the service layer
+    private const HEARING_ALLOWED   = ['incident_id', 'hearing_date', 'hearing_time', 'venue', 'committee_members', 'decision_notes', 'status'];
+    private const SANCTION_ALLOWED  = ['incident_id', 'student_id', 'sanction_type', 'start_date', 'end_date', 'status', 'remarks'];
+    private const REFORM_ALLOWED    = ['student_id', 'incident_id', 'program_title', 'description', 'assigned_supervisor', 'total_hours'];
+    private const REFORM_UPD_ALLOWED = ['completed_hours', 'status', 'completion_date'];
+    private const POINTS_ALLOWED    = ['student_id', 'incident_id', 'points_change', 'point_type', 'reason'];
+
+    // Filter key whitelists
+    private const HEARING_FILTERS   = ['student_id', 'status'];
+    private const SANCTION_FILTERS  = ['student_id'];
+    private const REFORM_FILTERS    = ['student_id'];
+    private const CLEARANCE_FILTERS = ['is_active'];
+
     public function __construct() {
         $this->model = new ProceedingsModel();
     }
 
+    // ─── Hearings ──────────────────────────────────────────────────────────
+
     public function getHearings(array $filters = []): array {
-        return $this->model->getAllHearings($filters);
+        $safe = array_intersect_key($filters, array_flip(self::HEARING_FILTERS));
+        return $this->model->getAllHearings($safe);
     }
 
     public function scheduleHearing(array $data, array $user): int {
         if (empty($data['incident_id']) || empty($data['hearing_date']) || empty($data['hearing_time'])) {
-            throw new Exception("Incident ID, Hearing Date, and Hearing Time are required.");
+            throw new \InvalidArgumentException("Incident ID, Hearing Date, and Hearing Time are required.");
         }
-        $data['presided_by'] = $user['user_id'];
-        $id = $this->model->scheduleHearing($data);
-        AuditLogger::log('SCHEDULE_HEARING', 'Disciplinary Hearing', "Scheduled hearing for Incident ID {$data['incident_id']} on {$data['hearing_date']}", $user['user_id'], $user['full_name']);
+        $safe = array_intersect_key($data, array_flip(self::HEARING_ALLOWED));
+        $safe['presided_by'] = $user['user_id']; // always from verified session
+
+        $id = $this->model->scheduleHearing($safe);
+        AuditLogger::log(
+            'SCHEDULE_HEARING',
+            'Disciplinary Hearing',
+            "Scheduled hearing for Incident ID {$data['incident_id']} on {$data['hearing_date']}",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $id;
     }
 
     public function updateHearing(int $id, array $data, array $user): bool {
         if (empty($data['hearing_date']) || empty($data['hearing_time'])) {
-            throw new Exception("Hearing Date and Hearing Time are required.");
+            throw new \InvalidArgumentException("Hearing Date and Hearing Time are required.");
         }
-        $res = $this->model->updateHearing($id, $data);
-        AuditLogger::log('UPDATE_HEARING', 'Disciplinary Hearing', "Updated hearing ID {$id} (Status: {$data['status']})", $user['user_id'], $user['full_name']);
+        $safe = array_intersect_key($data, array_flip(self::HEARING_ALLOWED));
+        $res  = $this->model->updateHearing($id, $safe);
+        AuditLogger::log(
+            'UPDATE_HEARING',
+            'Disciplinary Hearing',
+            "Updated hearing ID {$id} (Status: " . ($safe['status'] ?? 'N/A') . ")",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $res;
     }
 
+    // ─── Sanctions ─────────────────────────────────────────────────────────
+
     public function getSanctions(array $filters = []): array {
-        return $this->model->getAllSanctions($filters);
+        $safe = array_intersect_key($filters, array_flip(self::SANCTION_FILTERS));
+        return $this->model->getAllSanctions($safe);
     }
 
     public function createSanction(array $data, array $user): int {
         if (empty($data['incident_id']) || empty($data['student_id']) || empty($data['sanction_type']) || empty($data['start_date'])) {
-            throw new Exception("Incident ID, Student ID, Sanction Type, and Start Date are required.");
+            throw new \InvalidArgumentException("Incident ID, Student ID, Sanction Type, and Start Date are required.");
         }
-        $data['issued_by'] = $user['user_id'];
-        $id = $this->model->createSanction($data);
-        AuditLogger::log('ISSUE_SANCTION', 'Sanction Management', "Issued sanction {$data['sanction_type']} for Student ID {$data['student_id']}", $user['user_id'], $user['full_name']);
+        $safe = array_intersect_key($data, array_flip(self::SANCTION_ALLOWED));
+        $safe['issued_by'] = $user['user_id']; // always from verified session
+
+        $id = $this->model->createSanction($safe);
+        AuditLogger::log(
+            'ISSUE_SANCTION',
+            'Sanction Management',
+            "Issued sanction {$data['sanction_type']} for Student ID {$data['student_id']}",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $id;
     }
 
     public function updateSanction(int $id, array $data, array $user): bool {
-        $res = $this->model->updateSanction($id, $data);
-        AuditLogger::log('UPDATE_SANCTION', 'Sanction Management', "Updated sanction ID {$id} (Status: {$data['status']})", $user['user_id'], $user['full_name']);
+        // Only allow updating status, end_date, remarks
+        $safe = array_intersect_key($data, array_flip(['status', 'end_date', 'remarks']));
+        $res  = $this->model->updateSanction($id, $safe);
+        AuditLogger::log(
+            'UPDATE_SANCTION',
+            'Sanction Management',
+            "Updated sanction ID {$id} (Status: " . ($safe['status'] ?? 'N/A') . ")",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $res;
     }
 
+    // ─── Clearance Holds ───────────────────────────────────────────────────
+
     public function getClearanceHolds(array $filters = []): array {
-        return $this->model->getAllClearanceHolds($filters);
+        $safe = array_intersect_key($filters, array_flip(self::CLEARANCE_FILTERS));
+        return $this->model->getAllClearanceHolds($safe);
     }
 
     public function setClearanceHold(array $data, array $user): bool {
         if (empty($data['student_id'])) {
-            throw new Exception("Student ID is required.");
+            throw new \InvalidArgumentException("Student ID is required.");
         }
-        $hold = !empty($data['hold']);
-        $reason = $data['reason'] ?? ($hold ? 'Manual clearance hold set by prefect' : 'Cleared');
+        $hold   = !empty($data['hold']);
+        $reason = isset($data['reason']) ? trim((string)$data['reason']) : '';
+        if ($reason === '') {
+            $reason = $hold ? 'Manual clearance hold set by prefect' : 'Cleared';
+        }
         $this->model->toggleClearanceHold((int)$data['student_id'], $hold, $reason, (int)$user['user_id']);
-        AuditLogger::log($hold ? 'FLAG_CLEARANCE_HOLD' : 'RELEASE_CLEARANCE_HOLD', 'Clearance Hold', ($hold ? "Flagged clearance hold" : "Released clearance hold") . " for Student ID {$data['student_id']}", $user['user_id'], $user['full_name']);
+        AuditLogger::log(
+            $hold ? 'FLAG_CLEARANCE_HOLD' : 'RELEASE_CLEARANCE_HOLD',
+            'Clearance Hold',
+            ($hold ? "Flagged clearance hold" : "Released clearance hold") . " for Student ID {$data['student_id']}",
+            $user['user_id'],
+            $user['full_name']
+        );
         return true;
     }
 
+    // ─── Reformation Programs ──────────────────────────────────────────────
+
     public function getReformationPrograms(array $filters = []): array {
-        return $this->model->getAllReformationPrograms($filters);
+        $safe = array_intersect_key($filters, array_flip(self::REFORM_FILTERS));
+        return $this->model->getAllReformationPrograms($safe);
     }
 
     public function assignReformation(array $data, array $user): int {
         if (empty($data['student_id']) || empty($data['program_title'])) {
-            throw new Exception("Student ID and Program Title are required.");
+            throw new \InvalidArgumentException("Student ID and Program Title are required.");
         }
-        $data['assigned_supervisor'] = $data['assigned_supervisor'] ?? $user['user_id'];
-        $id = $this->model->assignReformationProgram($data);
-        AuditLogger::log('ASSIGN_REFORMATION', 'Reformation Program', "Assigned program {$data['program_title']} to Student ID {$data['student_id']}", $user['user_id'], $user['full_name']);
+        $safe = array_intersect_key($data, array_flip(self::REFORM_ALLOWED));
+        // Default supervisor to the logged-in user if not explicitly set
+        if (empty($safe['assigned_supervisor'])) {
+            $safe['assigned_supervisor'] = $user['user_id'];
+        }
+        $id = $this->model->assignReformationProgram($safe);
+        AuditLogger::log(
+            'ASSIGN_REFORMATION',
+            'Reformation Program',
+            "Assigned program {$data['program_title']} to Student ID {$data['student_id']}",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $id;
     }
 
     public function updateReformation(int $id, array $data, array $user): bool {
-        $res = $this->model->updateReformationProgram($id, $data);
-        AuditLogger::log('UPDATE_REFORMATION', 'Reformation Program', "Updated reformation program ID {$id} (Status: {$data['status']})", $user['user_id'], $user['full_name']);
+        $safe = array_intersect_key($data, array_flip(self::REFORM_UPD_ALLOWED));
+        $res  = $this->model->updateReformationProgram($id, $safe);
+        AuditLogger::log(
+            'UPDATE_REFORMATION',
+            'Reformation Program',
+            "Updated reformation program ID {$id} (Status: " . ($safe['status'] ?? 'N/A') . ")",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $res;
     }
+
+    // ─── Behavior Points ───────────────────────────────────────────────────
 
     public function getPointsHistory(): array {
         return $this->model->getBehaviorPointsHistory();
@@ -93,11 +177,19 @@ class ProceedingsService {
 
     public function addPoints(array $data, array $user): int {
         if (empty($data['student_id']) || !isset($data['points_change']) || empty($data['point_type']) || empty($data['reason'])) {
-            throw new Exception("Student ID, Points Amount, Point Type, and Reason are required.");
+            throw new \InvalidArgumentException("Student ID, Points Amount, Point Type, and Reason are required.");
         }
-        $data['created_by'] = $user['user_id'];
-        $id = $this->model->addManualBehaviorPoints($data);
-        AuditLogger::log('ADJUST_POINTS', 'Behavior Points', "Adjusted points ({$data['points_change']} pts, {$data['point_type']}) for Student ID {$data['student_id']}", $user['user_id'], $user['full_name']);
+        $safe = array_intersect_key($data, array_flip(self::POINTS_ALLOWED));
+        $safe['created_by'] = $user['user_id']; // always from verified session
+
+        $id = $this->model->addManualBehaviorPoints($safe);
+        AuditLogger::log(
+            'ADJUST_POINTS',
+            'Behavior Points',
+            "Adjusted points ({$data['points_change']} pts, {$data['point_type']}) for Student ID {$data['student_id']}",
+            $user['user_id'],
+            $user['full_name']
+        );
         return $id;
     }
 }

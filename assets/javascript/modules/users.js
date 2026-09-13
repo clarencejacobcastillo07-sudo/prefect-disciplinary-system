@@ -1,6 +1,7 @@
-window.renderUsersModule = async function(container) {
+window.renderUsersModule = async function (container) {
   let users = [];
-  let roles = [
+  let loadError = null;
+  const roles = [
     { id: 1, name: 'Administrator' },
     { id: 2, name: 'Prefect Officer' },
     { id: 3, name: 'Guidance Counselor' },
@@ -11,29 +12,44 @@ window.renderUsersModule = async function(container) {
     const res = await ApiClient.get('auth', 'users');
     users = res.data || [];
   } catch (e) {
-    users = [
-      { id: 1, full_name: 'System Administrator',  email: 'admin@stagnes.edu.ph',     role_id: 1, role_name: 'Administrator',        is_active: true,  created_at: '2026-06-01' },
-      { id: 2, full_name: 'Mr. Ricardo Santos',    email: 'prefect@stagnes.edu.ph',   role_id: 2, role_name: 'Prefect Officer',       is_active: true,  created_at: '2026-06-01' },
-      { id: 3, full_name: 'Ms. Maria Teresa Cruz', email: 'guidance@stagnes.edu.ph',  role_id: 3, role_name: 'Guidance Counselor',    is_active: true,  created_at: '2026-06-01' },
-      { id: 4, full_name: 'Sr. Agnes D. Reyes',    email: 'principal@stagnes.edu.ph', role_id: 4, role_name: 'Principal',             is_active: true,  created_at: '2026-06-01' }
-    ];
+    console.error('Error fetching users:', e);
+    loadError = e;
+    users = [];
+  }
+
+  if (loadError) {
+    container.innerHTML = `
+      <div class="card card-dark" style="padding:40px; text-align:center; max-width:600px; margin:40px auto;">
+        <div style="width:60px; height:60px; border-radius:50%; background:rgba(239,68,68,0.15); color:var(--danger); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto; font-size:1.5rem;">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 style="color:var(--text-light); margin-bottom:8px; font-size:1.2rem;">Unable to Load User Management</h3>
+        <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px;">
+          ${loadError.message || 'Access restricted or server connection failure.'}
+        </p>
+        <button class="btn btn-primary" onclick="Router.navigate('dashboard')">
+          <i class="fas fa-arrow-left"></i> Return to Dashboard
+        </button>
+      </div>
+    `;
+    return;
   }
 
   const roleColorMap = {
-    'Administrator':     'badge-danger',
-    'Prefect Officer':   'badge-warning',
-    'Guidance Counselor':'badge-primary',
-    'Principal':         'badge-success'
+    'Administrator': 'badge-danger',
+    'Prefect Officer': 'badge-warning',
+    'Guidance Counselor': 'badge-primary',
+    'Principal': 'badge-success'
   };
 
   const roleIconMap = {
-    'Administrator':     'fa-user-shield',
-    'Prefect Officer':   'fa-gavel',
-    'Guidance Counselor':'fa-user-nurse',
-    'Principal':         'fa-user-tie'
+    'Administrator': 'fa-user-shield',
+    'Prefect Officer': 'fa-gavel',
+    'Guidance Counselor': 'fa-user-nurse',
+    'Principal': 'fa-user-tie'
   };
 
-  const initials = name => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const initials = name => (name || 'User').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   container.innerHTML = `
     <!-- Page Header -->
@@ -54,11 +70,11 @@ window.renderUsersModule = async function(container) {
     <!-- Role Summary Cards -->
     <div class="card-grid" style="margin-bottom:25px;">
       ${[
-        { label: 'Administrators',      icon: 'fa-user-shield', color: 'var(--danger)',  count: users.filter(u => u.role_name === 'Administrator').length },
-        { label: 'Prefect Officers',    icon: 'fa-gavel',       color: 'var(--warning)', count: users.filter(u => u.role_name === 'Prefect Officer').length },
-        { label: 'Guidance Counselors', icon: 'fa-user-nurse',  color: 'var(--accent)',  count: users.filter(u => u.role_name === 'Guidance Counselor').length },
-        { label: 'Principal Accounts',  icon: 'fa-user-tie',    color: 'var(--success)', count: users.filter(u => u.role_name === 'Principal').length }
-      ].map(c => `
+      { label: 'Administrators', icon: 'fa-user-shield', color: 'var(--danger)', count: users.filter(u => u.role_name === 'Administrator').length },
+      { label: 'Prefect Officers', icon: 'fa-gavel', color: 'var(--warning)', count: users.filter(u => u.role_name === 'Prefect Officer').length },
+      { label: 'Guidance Counselors', icon: 'fa-user-nurse', color: 'var(--accent)', count: users.filter(u => u.role_name === 'Guidance Counselor').length },
+      { label: 'Principal Accounts', icon: 'fa-user-tie', color: 'var(--success)', count: users.filter(u => u.role_name === 'Principal').length }
+    ].map(c => `
         <div class="card metric-card">
           <div class="metric-info">
             <h3 style="color:${c.color};">${c.count}</h3>
@@ -99,7 +115,7 @@ window.renderUsersModule = async function(container) {
         </thead>
         <tbody id="usersTableBody">
           ${users.map(u => `
-            <tr data-name="${u.full_name.toLowerCase()}" data-email="${u.email.toLowerCase()}">
+            <tr data-name="${(u.full_name || '').toLowerCase()}" data-email="${(u.email || '').toLowerCase()}">
               <td>
                 <div style="display:flex; align-items:center; gap:12px;">
                   <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #2D1424); border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.78rem; color:#fff; flex-shrink:0;">
@@ -125,12 +141,12 @@ window.renderUsersModule = async function(container) {
               <td style="color:var(--text-muted); font-size:0.83rem;">${u.created_at || 'N/A'}</td>
               <td>
                 <div style="display:flex; gap:6px;">
-                  <button class="btn btn-secondary btn-sm" onclick="openEditUserModal(${u.id}, '${u.full_name.replace(/'/g,"\\'")}', '${u.email}', ${u.role_id}, ${u.is_active})" title="Edit User">
+                  <button class="btn btn-secondary btn-sm" onclick="openEditUserModal(${u.id}, '${(u.full_name || '').replace(/'/g, "\\'")}', '${u.email}', ${u.role_id}, ${u.is_active ? 1 : 0})" title="Edit User">
                     <i class="fas fa-edit"></i> Edit
                   </button>
                   ${u.id !== 1 ? `
                   <button class="btn btn-sm" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.3);"
-                    onclick="confirmToggleUserStatus(${u.id}, '${u.full_name.replace(/'/g,"\\'")}', ${u.is_active})" title="${u.is_active ? 'Deactivate' : 'Activate'} Account">
+                    onclick="confirmToggleUserStatus(${u.id}, '${(u.full_name || '').replace(/'/g, "\\'")}', ${u.is_active ? 1 : 0})" title="${u.is_active ? 'Deactivate' : 'Activate'} Account">
                     <i class="fas ${u.is_active ? 'fa-user-slash' : 'fa-user-check'}"></i>
                   </button>
                   ` : ''}
@@ -159,7 +175,7 @@ window.renderUsersModule = async function(container) {
 
           <div class="form-group">
             <label>Email Address <span style="color:var(--danger);">*</span></label>
-            <input type="email" id="u_email" placeholder="name@stagnes.edu.ph" required />
+            <input type="email" id="u_email" placeholder="name@gmail.com" required />
           </div>
 
           <div class="form-group">
@@ -168,12 +184,6 @@ window.renderUsersModule = async function(container) {
               <option value="">-- Select Role --</option>
               ${roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
             </select>
-          </div>
-
-          <div id="u_password_group" class="form-group">
-            <label>Password <span style="color:var(--danger);" id="u_password_req">*</span></label>
-            <input type="password" id="u_password" placeholder="Minimum 8 characters" />
-            <p id="u_password_hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Leave blank to keep existing password (edit mode only).</p>
           </div>
 
           <div class="form-group">
@@ -185,8 +195,8 @@ window.renderUsersModule = async function(container) {
           </div>
 
           <div style="background:rgba(255,95,162,0.06); border:1px solid rgba(255,95,162,0.2); border-radius:var(--radius-sm); padding:12px 14px; font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
-            <i class="fas fa-info-circle" style="color:var(--accent);"></i>
-            <strong>Default credentials:</strong> Password should meet St. Agnes Academy policy (min 8 characters, 1 uppercase, 1 number).
+            <i class="fas fa-shield-alt" style="color:var(--accent);"></i>
+            <strong>Supabase Auth Integration:</strong> User login credentials are secure. Newly added users sign in with their registered email address.
           </div>
 
           <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--border-color); padding-top:16px;">
@@ -202,9 +212,9 @@ window.renderUsersModule = async function(container) {
 
   // --- Filter ---
   window.filterUsersTable = (query) => {
-    const q = query.toLowerCase();
+    const q = (query || '').toLowerCase();
     document.querySelectorAll('#usersTableBody tr').forEach(row => {
-      const name  = row.getAttribute('data-name')  || '';
+      const name = row.getAttribute('data-name') || '';
       const email = row.getAttribute('data-email') || '';
       row.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
     });
@@ -216,8 +226,6 @@ window.renderUsersModule = async function(container) {
     document.getElementById('saveUserBtnText').textContent = 'Create Account';
     document.getElementById('u_edit_id').value = '';
     document.getElementById('userForm').reset();
-    document.getElementById('u_password_hint').style.display = 'none';
-    document.getElementById('u_password').required = true;
     document.getElementById('userModal').classList.add('active');
   };
 
@@ -229,23 +237,21 @@ window.renderUsersModule = async function(container) {
     document.getElementById('u_email').value = email;
     document.getElementById('u_role_id').value = roleId;
     document.getElementById('u_is_active').value = isActive ? '1' : '0';
-    document.getElementById('u_password').value = '';
-    document.getElementById('u_password').required = false;
-    document.getElementById('u_password_hint').style.display = 'block';
     document.getElementById('userModal').classList.add('active');
   };
 
   window.closeUserModal = () => document.getElementById('userModal').classList.remove('active');
 
-  window.confirmToggleUserStatus = (id, name, isActive) => {
+  window.confirmToggleUserStatus = async (id, name, isActive) => {
     const action = isActive ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} account for "${name}"?`)) {
-      ApiClient.post('auth', `users/${id}/toggle-status`, {}).then(() => {
+    if (confirm(`Are you sure you want to ${action} the account for "${name}"?`)) {
+      try {
+        await ApiClient.post('auth', 'toggle-user', { is_active: !isActive }, id);
+        alert(`Account for "${name}" has been ${isActive ? 'deactivated' : 'activated'}.`);
         window.renderUsersModule(container);
-      }).catch(() => {
-        alert(`Status updated for ${name} (demo mode).`);
-        window.renderUsersModule(container);
-      });
+      } catch (err) {
+        alert('Failed to update status: ' + (err.message || 'Server error'));
+      }
     }
   };
 
@@ -257,31 +263,28 @@ window.renderUsersModule = async function(container) {
 
     const editId = document.getElementById('u_edit_id').value;
     const payload = {
-      full_name: document.getElementById('u_full_name').value,
-      email:     document.getElementById('u_email').value,
-      role_id:   document.getElementById('u_role_id').value,
-      is_active: document.getElementById('u_is_active').value === '1',
-      password:  document.getElementById('u_password').value || undefined
+      full_name: document.getElementById('u_full_name').value.trim(),
+      email: document.getElementById('u_email').value.trim(),
+      role_id: parseInt(document.getElementById('u_role_id').value, 10),
+      is_active: document.getElementById('u_is_active').value === '1'
     };
 
     try {
       if (editId) {
-        await ApiClient.post('auth', `users/${editId}`, payload);
+        await ApiClient.post('auth', 'update-user', payload, editId);
         alert(`User account for "${payload.full_name}" updated successfully!`);
       } else {
         await ApiClient.post('auth', 'users', payload);
-        alert(`New user account for "${payload.full_name}" created successfully!\nDefault role: ${roles.find(r => r.id == payload.role_id)?.name}`);
+        alert(`New user account for "${payload.full_name}" created successfully!`);
       }
       closeUserModal();
       window.renderUsersModule(container);
     } catch (err) {
-      // Demo fallback
-      alert(`Account ${editId ? 'updated' : 'created'} for "${payload.full_name}" (demo mode).`);
-      closeUserModal();
-      window.renderUsersModule(container);
+      alert('Error saving user account: ' + (err.message || 'Server error'));
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-save"></i> <span id="saveUserBtnText">' + (editId ? 'Save Changes' : 'Create Account') + '</span>';
     }
   };
 };
+

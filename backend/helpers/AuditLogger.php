@@ -20,7 +20,8 @@ class AuditLogger {
                 ':ip_address' => $ip
             ]);
         } catch (\Throwable $e) {
-            // Silently swallow audit log failure to prevent breaking main business process
+            error_log("[PDS AuditLogger] Failed to write audit log: " . $e->getMessage() . " | Action: {$action} | Module: {$module}");
         }
     }
 }
+

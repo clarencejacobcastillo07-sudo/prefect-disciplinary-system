@@ -1,6 +1,8 @@
 <?php
 /**
  * Authentication Middleware
+ * System: Prefect Disciplinary Action System
+ * Client: St. Agnes Academy of Caloocan Inc.
  */
 require_once __DIR__ . '/../helpers/ResponseHelper.php';
 require_once __DIR__ . '/../config/supabase.php';
@@ -26,60 +28,73 @@ class AuthMiddleware {
 
         if (!empty($authHeader) && str_starts_with($authHeader, 'Bearer ')) {
             $token = trim(substr($authHeader, 7));
+            if (empty($token)) {
+                ResponseHelper::error('Unauthorized access. Bearer token is empty.', 401);
+                exit();
+            }
+
             $verified = null;
-            
             try {
                 $verified = SupabaseConfig::verifyJwtToken($token);
             } catch (\Throwable $t) {
-                // Ignore remote verification error and fall back to local token inspection
+                error_log('[PDS AuthMiddleware] JWT verification error: ' . $t->getMessage());
+                ResponseHelper::error('Unauthorized access. Authentication service verification failed.', 401);
+                exit();
             }
 
-            $supabaseUid = null;
-            $email = null;
+            // Supabase Auth verification must succeed with valid user object
+            if (!$verified || (empty($verified['id']) && empty($verified['sub']))) {
+                ResponseHelper::error('Unauthorized access. Invalid or expired token.', 401);
+                exit();
+            }
 
-            if ($verified && (!empty($verified['id']) || !empty($verified['sub']))) {
-                $supabaseUid = $verified['id'] ?? $verified['sub'];
-                $email = $verified['email'] ?? '';
-            } else {
-                // Local JWT payload decoding fallback when Supabase API is unreachable
-                $parts = explode('.', $token);
-                if (count($parts) === 3) {
-                    $payloadJson = base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1]));
-                    $payload = json_decode($payloadJson, true);
-                    if (is_array($payload)) {
-                        $supabaseUid = $payload['sub'] ?? $payload['id'] ?? null;
-                        $email = $payload['email'] ?? null;
-                    }
-                }
+            $supabaseUid = $verified['id'] ?? $verified['sub'];
+            $email = $verified['email'] ?? '';
+
+            // Validate UUID format strictly
+            if (!is_string($supabaseUid) || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $supabaseUid)) {
+                ResponseHelper::error('Unauthorized access. Invalid authentication identity format.', 401);
+                exit();
             }
 
             $userModel = new UserModel();
             $user = null;
 
-            if ($supabaseUid) {
-                $user = $userModel->findBySupabaseUid($supabaseUid);
-            }
-            if (!$user && $email) {
-                $user = $userModel->findByEmail($email);
-            }
-            if (!$user) {
-                // Fallback: Default active user profile for authenticated session
-                $user = $userModel->findByEmail('admin@stagnes.edu.ph') ?? $userModel->findByEmail('prefect@stagnes.edu.ph');
+            // 1. Primary: map by verified Supabase UUID
+            $user = $userModel->findBySupabaseUid($supabaseUid);
+
+            // 2. Secondary: initial account linking by verified email if supabase_uid is not yet set
+            if (!$user && !empty($email)) {
+                $candidate = $userModel->findByEmail($email);
+                if ($candidate && empty($candidate['supabase_uid'])) {
+                    $userModel->updateSupabaseUid((int)$candidate['id'], $supabaseUid);
+                    $user = $userModel->findBySupabaseUid($supabaseUid);
+                }
             }
 
-            if ($user && !empty($user['is_active'])) {
-                return [
-                    'user_id'      => (int)$user['id'],
-                    'supabase_uid' => $supabaseUid ?? ($user['supabase_uid'] ?? 'local-uid'),
-                    'full_name'    => $user['full_name'],
-                    'email'        => $user['email'],
-                    'role_id'      => (int)$user['role_id'],
-                    'role_name'    => $user['role_name']
-                ];
+            // If no active local profile exists, reject request — never guess role or auto-create user
+            if (!$user) {
+                ResponseHelper::error('Forbidden. Authenticated user does not have a local application profile.', 403);
+                exit();
             }
+
+            if (empty($user['is_active'])) {
+                ResponseHelper::error('Forbidden. Your user account is inactive. Contact the administrator.', 403);
+                exit();
+            }
+
+            return [
+                'user_id'      => (int)$user['id'],
+                'supabase_uid' => $supabaseUid,
+                'full_name'    => $user['full_name'],
+                'email'        => $user['email'],
+                'role_id'      => (int)$user['role_id'],
+                'role_name'    => $user['role_name']
+            ];
         }
 
         ResponseHelper::error('Unauthorized access. Valid Bearer token required.', 401);
         exit();
     }
 }
+

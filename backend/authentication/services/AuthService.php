@@ -20,8 +20,20 @@ class AuthService {
         $supabaseUid = $supabaseSession['user']['id'];
         $accessToken = $supabaseSession['access_token'];
 
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $supabaseUid)) {
+            throw new Exception('Invalid authentication credentials format.');
+        }
+
         // Map Supabase Auth user to local application profile for RBAC
-        $user = $this->userModel->findBySupabaseUid($supabaseUid) ?? $this->userModel->findByEmail($email);
+        $user = $this->userModel->findBySupabaseUid($supabaseUid);
+        if (!$user) {
+            $user = $this->userModel->findByEmail($email);
+            if ($user && empty($user['supabase_uid'])) {
+                $this->userModel->updateSupabaseUid((int)$user['id'], $supabaseUid);
+                $user = $this->userModel->findBySupabaseUid($supabaseUid);
+            }
+        }
+
         if (!$user) {
             throw new Exception('User profile not found in application database. Contact an administrator.');
         }
@@ -30,21 +42,16 @@ class AuthService {
             throw new Exception('Account is inactive. Contact an administrator.');
         }
 
-        // Back-fill supabase_uid if the record was found by email only
-        if (empty($user['supabase_uid'])) {
-            $this->userModel->updateSupabaseUid($user['id'], $supabaseUid);
-        }
-
         AuditLogger::log('USER_LOGIN', 'Authentication', "User {$user['full_name']} logged in successfully via Supabase Auth", $user['id'], $user['full_name']);
 
         return [
             'token' => $accessToken,
             'user'  => [
-                'id'           => $user['id'],
+                'id'           => (int)$user['id'],
                 'supabase_uid' => $supabaseUid,
                 'full_name'    => $user['full_name'],
                 'email'        => $user['email'],
-                'role_id'      => $user['role_id'],
+                'role_id'      => (int)$user['role_id'],
                 'role_name'    => $user['role_name'],
             ],
         ];

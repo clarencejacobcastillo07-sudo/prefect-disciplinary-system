@@ -66,8 +66,9 @@ $method  = $_SERVER['REQUEST_METHOD'];
 try {
     switch ($service) {
         case 'auth':
-            handleAuthRoutes($method, $action);
+            handleAuthRoutes($method, $action, $id);
             break;
+
         case 'students':
             handleStudentRoutes($method, $action, $id);
             break;
@@ -87,5 +88,6 @@ try {
             ResponseHelper::error('Microservice endpoint not found.', 404);
     }
 } catch (\Throwable $e) {
-    ResponseHelper::error($e->getMessage(), 500);
+    error_log("[PDS API Exception] " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    ResponseHelper::error('An unexpected server error occurred.', 500);
 }

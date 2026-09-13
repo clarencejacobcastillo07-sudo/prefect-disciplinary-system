@@ -314,7 +314,19 @@ CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_logs(module);
 CREATE INDEX IF NOT EXISTS idx_audit_date ON audit_logs(created_at);
 
 -- =============================================================================
+-- 14. System Settings Table
+--     School-level non-sensitive configuration parameters.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_key   VARCHAR(64) PRIMARY KEY,
+    setting_value TEXT,
+    description   VARCHAR(255),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================================================
 -- ROW LEVEL SECURITY (RLS) ARCHITECTURE & STRATEGY DOCUMENTATION
+
 -- =============================================================================
 -- ARCHITECTURE FLOW:
 -- Frontend -> Supabase Auth -> Bearer JWT -> PHP REST API (AuthMiddleware)

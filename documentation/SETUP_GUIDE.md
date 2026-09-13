@@ -45,11 +45,13 @@
 
 ---
 
-## 3. User Credentials for Demonstration
+## 3. Seeded Application Accounts & RBAC Roles
+Passwords are created and managed securely in Supabase Auth.
 
-| Role | Email | Password | Access Level |
-| :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@stagnes.edu.ph` | `Password123!` | Full System & RBAC Access |
-| **Prefect Officer** | `prefect@stagnes.edu.ph` | `Password123!` | Infractions, Hearings, Sanctions, Clearance |
-| **Guidance Counselor**| `guidance@stagnes.edu.ph` | `Password123!` | Behavior, Reformation, Hearings |
-| **Principal** | `principal@stagnes.edu.ph` | `Password123!` | Executive Review, Analytics, Reports |
+| Role | Seeded Email | Default Access Scope |
+| :--- | :--- | :--- |
+| **Administrator** | `admin@stagnes.edu.ph` | Full System Administration, User Management, Settings, Audit Logs |
+| **Prefect Officer** | `prefect@stagnes.edu.ph` | Infraction Logging, Hearing Scheduling, Sanctions, Clearance Holds |
+| **Guidance Counselor**| `guidance@stagnes.edu.ph` | Behavior Monitoring, Reformation Programs, Conduct Points, Guidance |
+| **Principal** | `principal@stagnes.edu.ph` | Executive Review, Severe Sanction Approvals, Analytics, Custom Reports |
+

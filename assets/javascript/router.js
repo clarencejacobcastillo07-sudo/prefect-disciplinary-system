@@ -27,6 +27,24 @@ class Router {
       }
     });
 
+    if (typeof AuthManager !== 'undefined' && !AuthManager.canAccessModule(hash)) {
+      container.innerHTML = `
+        <div class="card card-dark" style="padding:40px; text-align:center; max-width:600px; margin:40px auto;">
+          <div style="width:60px; height:60px; border-radius:50%; background:rgba(239,68,68,0.15); color:var(--danger); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto; font-size:1.5rem;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <h3 style="color:var(--text-light); margin-bottom:8px; font-size:1.2rem;">Access Denied (HTTP 403)</h3>
+          <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px;">
+            Your assigned role does not have permission to view or access this module.
+          </p>
+          <button class="btn btn-primary" onclick="Router.navigate('dashboard')">
+            <i class="fas fa-arrow-left"></i> Return to Dashboard
+          </button>
+        </div>
+      `;
+      return;
+    }
+
     container.innerHTML = `
       <div style="display:flex; justify-content:center; align-items:center; height:300px; color:var(--accent);">
         <i class="fas fa-circle-notch fa-spin fa-2x"></i>
@@ -38,6 +56,7 @@ class Router {
         case 'dashboard':
           if (window.renderDashboardModule) window.renderDashboardModule(container);
           break;
+
         case 'students':
           if (window.renderStudentsModule) window.renderStudentsModule(container);
           break;

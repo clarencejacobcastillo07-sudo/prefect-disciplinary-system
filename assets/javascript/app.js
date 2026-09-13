@@ -62,6 +62,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const initials = currentUser.full_name.split(' ').map(n => n[0]).join('').substring(0, 2);
       avatarEl.textContent = initials;
     }
+
+    // Filter sidebar navigation items by user role
+    document.querySelectorAll('.sidebar .nav-item[data-module]').forEach(el => {
+      const moduleKey = el.getAttribute('data-module');
+      if (moduleKey && !AuthManager.canAccessModule(moduleKey)) {
+        el.style.display = 'none';
+      } else {
+        el.style.display = '';
+      }
+    });
+
+    // Hide empty menu categories
+    document.querySelectorAll('.sidebar-menu .menu-category').forEach(catHeader => {
+      let next = catHeader.nextElementSibling;
+      let hasVisibleChild = false;
+      while (next && !next.classList.contains('menu-category') && !next.style.borderTop) {
+        if (next.classList.contains('nav-item') && next.style.display !== 'none') {
+          hasVisibleChild = true;
+          break;
+        }
+        next = next.nextElementSibling;
+      }
+      catHeader.style.display = hasVisibleChild ? '' : 'none';
+    });
+  } else if (!window.location.pathname.endsWith('login.php') && !window.location.pathname.endsWith('login.html')) {
+    window.location.href = 'login.php';
+    return;
   }
 
   // Initialize SPA Router if present
@@ -77,3 +104,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Re-apply theme icons after DOM is fully loaded
   ThemeManager.applyTheme(ThemeManager.getSavedTheme());
 });
+

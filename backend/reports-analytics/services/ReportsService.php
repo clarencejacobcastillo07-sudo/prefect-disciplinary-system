@@ -19,4 +19,13 @@ class ReportsService {
     public function getAuditLogs(): array {
         return $this->model->getAuditLogs();
     }
+
+    public function getSettings(): array {
+        return $this->model->getSettings();
+    }
+
+    public function saveSettings(array $settings): bool {
+        return $this->model->saveSettings($settings);
+    }
 }
+

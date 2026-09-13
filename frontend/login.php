@@ -212,27 +212,32 @@
       <h3>Prefect Disciplinary Action System</h3>
     </div>
 
+    <div id="loginErrorAlert" style="display:none; background:rgba(239,68,68,0.15); border:1px solid var(--danger); color:var(--text-light); border-radius:var(--radius-sm); padding:10px 14px; font-size:0.83rem; margin-bottom:18px; text-align:left;">
+      <i class="fas fa-exclamation-circle" style="color:var(--danger); margin-right:6px;"></i>
+      <span id="loginErrorMsg">Invalid email or password.</span>
+    </div>
+
     <form id="loginForm" onsubmit="handleLoginSubmit(event)">
       <div class="input-group">
         <label>Email Address</label>
         <i class="fas fa-envelope"></i>
-        <input type="email" id="email" value="admin@stagnes.edu.ph" placeholder="name@stagnes.edu.ph" required />
+        <input type="email" id="email" value="" placeholder="name@gmail.com" required autocomplete="email" />
       </div>
 
       <div class="input-group">
         <label>Password</label>
         <i class="fas fa-lock"></i>
-        <input type="password" id="password" value="Password123!" placeholder="••••••••••••" required />
+        <input type="password" id="password" value="" placeholder="••••••••••••" required autocomplete="current-password" />
       </div>
 
       <div class="form-options">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" checked style="accent-color: var(--brand-pink);" /> Remember Me
+          <input type="checkbox" style="accent-color: var(--brand-pink);" /> Remember Me
         </label>
         <a href="#" onclick="alert('Please contact the System Administrator to reset your credentials.')">Forgot Password?</a>
       </div>
 
-      <button type="submit" class="btn-login">
+      <button type="submit" class="btn-login" id="loginSubmitBtn">
         <i class="fas fa-sign-in-alt"></i> Sign In to Dashboard
       </button>
     </form>
@@ -246,16 +251,36 @@
   <script>
     async function handleLoginSubmit(e) {
       e.preventDefault();
-      const email = document.getElementById('email').value;
+      const errBox = document.getElementById('loginErrorAlert');
+      const errMsg = document.getElementById('loginErrorMsg');
+      const submitBtn = document.getElementById('loginSubmitBtn');
+
+      errBox.style.display = 'none';
+
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        errMsg.textContent = 'Please enter both your email address and password.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Authenticating...';
 
       try {
         await AuthManager.login(email, password);
         window.location.href = 'index.php';
       } catch (err) {
-        alert('Login failed: ' + err.message);
+        errMsg.textContent = err.message || 'Login failed. Please check your credentials.';
+        errBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to Dashboard';
       }
     }
   </script>
 </body>
 </html>
+

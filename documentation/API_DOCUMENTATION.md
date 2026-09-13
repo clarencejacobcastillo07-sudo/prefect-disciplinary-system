@@ -5,15 +5,28 @@
 
 ---
 
-## 1. Authentication Service (`?service=auth`)
+## 1. Authentication & User Management Service (`?service=auth`)
 
 ### `POST ?service=auth&action=login`
-Authenticates user against system database or Supabase Auth.
-- **Request Body**: `{ "email": "admin@stagnes.edu.ph", "password": "Password123!" }`
-- **Response**: `{ "status": "success", "data": { "token": "...", "user": {...} } }`
+Authenticates user against Supabase Auth, verifies local active user profile, and returns session token.
+- **Request Body**: `{ "email": "admin@stagnes.edu.ph", "password": "<SECURE_PASSWORD>" }`
+- **Response**: `{ "status": "success", "data": { "token": "...", "user": { "id": 1, "email": "...", "role_name": "Administrator" } } }`
 
 ### `POST ?service=auth&action=logout`
 Terminates user session.
+
+### `GET ?service=auth&action=users` *(Administrator Only)*
+Lists all system users, active statuses, and assigned RBAC roles.
+
+### `POST ?service=auth&action=users` *(Administrator Only)*
+Creates or links a new application user profile.
+
+### `POST ?service=auth&action=update-user&id={id}` *(Administrator Only)*
+Updates user profile and role assignment.
+
+### `POST ?service=auth&action=toggle-user&id={id}` *(Administrator Only)*
+Activates or deactivates user account access.
+
 
 ---
 

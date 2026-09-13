@@ -10,7 +10,12 @@ function handleReportsRoutes(string $method, string $action): void {
         $controller->generate();
     } elseif ($action === 'audit' && $method === 'GET') {
         $controller->audit();
+    } elseif ($action === 'settings' && $method === 'GET') {
+        $controller->getSettings();
+    } elseif ($action === 'settings' && ($method === 'POST' || $method === 'PUT')) {
+        $controller->saveSettings();
     } else {
         ResponseHelper::error('Invalid reports endpoint', 404);
     }
 }
+

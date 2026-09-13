@@ -6,7 +6,7 @@
 -- AUTHENTICATION NOTICE:
 -- Supabase Auth is the SINGLE authentication authority for this application.
 -- User accounts below map to Supabase Auth users via email / supabase_uid.
--- Passwords are strictly managed by Supabase Auth (e.g. Password123! in Supabase Auth).
+-- Passwords are strictly managed by Supabase Auth.
 -- The local 'users' table stores application profile and RBAC role assignments.
 -- =============================================================================
 
@@ -24,10 +24,10 @@ ON CONFLICT (id) DO NOTHING;
 -- 2. Users (Mapped to Supabase Auth Users)
 -- ============================================================
 INSERT INTO users (id, role_id, full_name, email, is_active) VALUES
-(1, 1, 'System Administrator',  'admin@stagnes.edu.ph',     TRUE),
-(2, 2, 'Mr. Ricardo Santos',    'prefect@stagnes.edu.ph',   TRUE),
-(3, 3, 'Ms. Maria Teresa Cruz', 'guidance@stagnes.edu.ph',  TRUE),
-(4, 4, 'Sr. Agnes D. Reyes',    'principal@stagnes.edu.ph', TRUE)
+(1, 1, 'System Administrator',  'cjbngx@gmail.com',     TRUE),
+(2, 2, 'Mr. Ricardo Santos',    'cjbinance007@gmail.com',   TRUE),
+(3, 3, 'Ms. Maria Teresa Cruz', 'cjsatoshi072@gmail.com',  TRUE),
+(4, 4, 'Sr. Charles Reyes',    'stacksmusic07@gmail.com', TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
@@ -55,6 +55,22 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- Reset sequences (for PostgreSQL)
+-- 5. System Settings (Non-Sensitive Defaults)
 -- ============================================================
--- NOTE: In PostgreSQL, sequence update statements can be run when using PostgreSQL.
+INSERT INTO system_settings (setting_key, setting_value, description) VALUES
+('school_name',             'St. Agnes Academy of Caloocan Inc.',            'Official institution name'),
+('school_address',          'Camarin Road, Barangay 180, Caloocan City',     'Official school address'),
+('academic_year',           'S.Y. 2026 - 2027',                              'Current active school year'),
+('semester',                '1st Semester',                                  'Active grading/semester period'),
+('conduct_points_baseline', '100',                                           'Initial conduct points per student'),
+('low_risk_threshold',      '90',                                            'Points threshold for Low Risk standing'),
+('moderate_risk_threshold', '75',                                            'Points threshold for Moderate Risk standing'),
+('minor_demerit_default',   '3',                                             'Default demerits for Minor infractions'),
+('major_demerit_default',   '5',                                             'Default demerits for Major infractions'),
+('severe_demerit_default',  '8',                                             'Default demerits for Severe infractions'),
+('semaphore_sender_name',   'STAGNES',                                       'Approved SMS sender ID'),
+('email_notifications',     'true',                                          'Enable email alert notifications'),
+('sms_notifications',       'true',                                          'Enable SMS alert notifications'),
+('auto_clearance_flag',     'true',                                          'Automatic hold flagging on major infractions'),
+('auto_points_deduction',   'true',                                          'Automatic points deduction on report logging')
+ON CONFLICT (setting_key) DO NOTHING;
