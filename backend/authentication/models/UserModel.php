@@ -43,7 +43,7 @@ class UserModel {
             SELECT u.*, r.name as role_name 
             FROM users u 
             JOIN roles r ON u.role_id = r.id 
-            WHERE u.supabase_uid = :uid AND (u.is_active = TRUE OR u.is_active = 1)
+            WHERE u.supabase_uid = :uid AND u.is_active = TRUE 
         ");
         $stmt->execute([':uid' => $uid]);
         $user = $stmt->fetch();

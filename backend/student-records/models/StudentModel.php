@@ -19,7 +19,7 @@ class StudentModel {
 
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
-            $sql .= " AND (s.lrn LIKE :search OR s.first_name LIKE :search OR s.last_name LIKE :search OR (s.first_name || ' ' || s.last_name) LIKE :search OR s.section LIKE :search OR s.grade_level LIKE :search)";
+            $sql .= " AND (s.lrn ILIKE :search OR s.first_name ILIKE :search OR s.last_name ILIKE :search OR (s.first_name || ' ' || s.last_name) ILIKE :search OR s.section ILIKE :search OR s.grade_level ILIKE :search)";
             $params[':search'] = '%' . $search . '%';
         }
         if (!empty($filters['grade_level'])) {
@@ -53,9 +53,35 @@ class StudentModel {
         $this->db->beginTransaction();
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO students (lrn, first_name, last_name, middle_name, grade_level, section, track_strand, gender, conduct_points, status, clearance_status) 
-                VALUES (:lrn, :first_name, :last_name, :middle_name, :grade_level, :section, :track_strand, :gender, :conduct_points, :status, :clearance_status)
+                INSERT INTO students (
+                    lrn,
+                    first_name,
+                    last_name,
+                    middle_name,
+                    grade_level,
+                    section,
+                    track_strand,
+                    gender,
+                    conduct_points,
+                    status,
+                    clearance_status
+                )
+                VALUES (
+                    :lrn,
+                    :first_name,
+                    :last_name,
+                    :middle_name,
+                    :grade_level,
+                    :section,
+                    :track_strand,
+                    :gender,
+                    :conduct_points,
+                    :status,
+                    :clearance_status
+                )
+                RETURNING id
             ");
+
             $stmt->execute([
                 ':lrn' => $studentData['lrn'],
                 ':first_name' => $studentData['first_name'],
@@ -69,7 +95,7 @@ class StudentModel {
                 ':status' => $studentData['status'] ?? 'Good Standing',
                 ':clearance_status' => $studentData['clearance_status'] ?? 'Cleared'
             ]);
-            $studentId = (int)$this->db->lastInsertId();
+            $studentId = (int)$stmt->fetchColumn();
 
             if (!empty($parentData['guardian_name']) || !empty($parentData['contact_number'])) {
                 $pStmt = $this->db->prepare("
