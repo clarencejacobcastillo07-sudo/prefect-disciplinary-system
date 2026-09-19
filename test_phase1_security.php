@@ -106,10 +106,10 @@ echo "3. ROLE-BASED ACCESS CONTROL (RBAC) PERMISSION MATRIX\n";
 echo "-----------------------------------------------------\n";
 
 $rolesToTest = [
-    'Administrator'      => ['user_id' => 1, 'full_name' => 'System Administrator',  'email' => 'admin@stagnes.edu.ph',     'role_name' => 'Administrator',      'role_id' => 1],
-    'Prefect Officer'    => ['user_id' => 2, 'full_name' => 'Mr. Ricardo Santos',    'email' => 'prefect@stagnes.edu.ph',   'role_name' => 'Prefect Officer',    'role_id' => 2],
-    'Guidance Counselor' => ['user_id' => 3, 'full_name' => 'Ms. Maria Teresa Cruz', 'email' => 'guidance@stagnes.edu.ph',  'role_name' => 'Guidance Counselor', 'role_id' => 3],
-    'Principal'          => ['user_id' => 4, 'full_name' => 'Sr. Agnes D. Reyes',    'email' => 'principal@stagnes.edu.ph', 'role_name' => 'Principal',          'role_id' => 4]
+    'Administrator'      => ['user_id' => 1, 'full_name' => 'System Administrator',  'email' => 'cjbngx@gmail.com',         'role_name' => 'Administrator',      'role_id' => 1],
+    'Prefect Officer'    => ['user_id' => 2, 'full_name' => 'Mr. Ricardo Santos',    'email' => 'cjbinance007@gmail.com',   'role_name' => 'Prefect Officer',    'role_id' => 2],
+    'Guidance Counselor' => ['user_id' => 3, 'full_name' => 'Ms. Maria Teresa Cruz', 'email' => 'cjsatoshi072@gmail.com',  'role_name' => 'Guidance Counselor', 'role_id' => 3],
+    'Principal'          => ['user_id' => 4, 'full_name' => 'Sr. Charles Reyes',     'email' => 'stacksmusic07@gmail.com',  'role_name' => 'Principal',          'role_id' => 4]
 ];
 
 // Test 1: User Management (Administrator Only)
