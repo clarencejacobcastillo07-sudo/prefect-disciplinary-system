@@ -1,7 +1,9 @@
 .env
+.env.*
+!.env.example
 *.sqlite
+*.log
 vendor/
 node_modules/
 .idea/
 .vscode/
-*.log

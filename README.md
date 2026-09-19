@@ -2,7 +2,27 @@
 
 **BSIT Capstone Project:** Development of an Incident Report and Disciplinary Proceedings Management System for School Prefects with SMS-Based Parent Alerts  
 **Client:** St. Agnes Academy of Caloocan Inc. (Private High School)  
-**Environment:** XAMPP (Apache / localhost), PHP 8+, PostgreSQL / Supabase, Vanilla JavaScript SPA
+
+---
+
+## 🏗️ Architecture & Environments
+
+### Local Development Environment
+- **Web Server:** XAMPP (Apache / localhost)
+- **Language:** PHP 8+
+- **Database:** Supabase PostgreSQL (or SQLite for local offline development)
+- **Frontend:** Vanilla JavaScript SPA
+- **SMS Gateway:** Semaphore SMS API (Sandbox Simulation mode)
+
+### Production Deployment Target
+- **Hosting Provider:** **HostForge** (Apache / PHP Server)
+- **Database:** **Supabase PostgreSQL** (Cloud Database)
+- **Authentication:** **Supabase Auth / Bearer JWT**
+- **SMS Gateway:** **Semaphore SMS API v4** (Live Production Key)
+- **Architecture Flow:**
+  ```
+  GitHub Repository → HostForge (PHP 8 / Apache) → Supabase PostgreSQL & Auth / Semaphore SMS API
+  ```
 
 ---
 
@@ -27,8 +47,15 @@
 
 ---
 
-## 🚀 Quick Start under XAMPP
+## 💻 Local Development Setup (XAMPP)
 
-1. Place `prefect-disciplinary-system` in your XAMPP `htdocs` directory.
-2. Start **Apache** in XAMPP Control Panel.
+1. Place `prefect-disciplinary-system` in your XAMPP `htdocs` directory (`C:\xampp\htdocs\prefect-disciplinary-system`).
+2. Start **Apache** in the XAMPP Control Panel.
 3. Open `http://localhost/prefect-disciplinary-system/` in your browser.
+
+---
+
+## 🌐 Production Deployment (HostForge)
+
+For production deployment instructions and configuration checklists for **HostForge**, refer to the detailed guide:
+- [`documentation/PRODUCTION_SECURITY_DEPLOYMENT_GUIDE.md`](file:///c:/xampp/htdocs/prefect-disciplinary-system/documentation/PRODUCTION_SECURITY_DEPLOYMENT_GUIDE.md)

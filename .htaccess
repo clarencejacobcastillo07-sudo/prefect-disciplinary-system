@@ -1,0 +1,24 @@
+# Apache Web Server Configuration for HostForge / Production
+# System: Prefect Disciplinary Action System — St. Agnes Academy
+
+# 1. Disable Directory Indexing
+Options -Indexes
+
+# 2. Protect Sensitive Files & Directories
+<FilesMatch "^\.env|\.git|\.sqlite|\.log|\.sql$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^(schema|reset_schema|seeders)\.sql$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. HTTP Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
