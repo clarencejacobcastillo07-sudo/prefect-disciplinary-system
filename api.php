@@ -6,6 +6,19 @@
  */
 
 // ---------------------------------------------------------------------------
+// Security Response Headers (Production Hardening)
+// ---------------------------------------------------------------------------
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+}
+
+// ---------------------------------------------------------------------------
 // CORS — Origin whitelist from environment.
 // ALLOWED_ORIGINS in .env: comma-separated list of allowed origins.
 // Example: http://localhost,https://app.yourdomain.com
@@ -37,7 +50,6 @@ if (!empty($allowedOrigins) && in_array($requestOrigin, $allowedOrigins, true)) 
     header('Vary: Origin');
 } elseif (empty($allowedOrigins)) {
     // ALLOWED_ORIGINS not configured — restrict to same-origin only (no header emitted)
-    // Set this variable in .env to enable cross-origin access.
 }
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -49,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-
 require_once __DIR__ . '/backend/helpers/ResponseHelper.php';
+require_once __DIR__ . '/backend/middleware/RateLimitMiddleware.php';
 require_once __DIR__ . '/backend/authentication/routes/auth_routes.php';
 require_once __DIR__ . '/backend/student-records/routes/student_routes.php';
 require_once __DIR__ . '/backend/incident-management/routes/incident_routes.php';
@@ -63,12 +75,18 @@ $action  = $_GET['action'] ?? '';
 $id      = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $method  = $_SERVER['REQUEST_METHOD'];
 
+// Enforce Rate Limiting
+$clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+if (str_contains($clientIp, ',')) {
+    $clientIp = trim(explode(',', $clientIp)[0]);
+}
+RateLimitMiddleware::enforce($clientIp, $service, $action);
+
 try {
     switch ($service) {
         case 'auth':
             handleAuthRoutes($method, $action, $id);
             break;
-
         case 'students':
             handleStudentRoutes($method, $action, $id);
             break;

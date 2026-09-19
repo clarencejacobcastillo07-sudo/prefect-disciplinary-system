@@ -92,10 +92,11 @@ class IncidentService {
                 $db->prepare("UPDATE students SET clearance_status = 'Hold' WHERE id = :id")->execute([':id' => $studentId]);
             }
 
-            // Trigger SMS notification to parent
-            if (!empty($incident['parent_phone'])) {
-                $smsMsg = "ST. AGNES ACADEMY NOTICE: An incident ({$incident['violation_title']}) involving {$incident['first_name']} {$incident['last_name']} was recorded on {$incident['incident_date']}. Please contact the Prefect Office.";
-                $this->notificationService->sendSMS($studentId, $incident['parent_phone'], $smsMsg, $user['user_id']);
+            // Trigger automated SMS notification to registered parent/guardian
+            try {
+                $this->notificationService->sendIncidentAlert($studentId, $incident, $user['user_id']);
+            } catch (\Throwable $e) {
+                error_log('[IncidentService] Parent SMS alert error: ' . $e->getMessage());
             }
         }
 

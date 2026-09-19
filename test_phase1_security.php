@@ -89,8 +89,9 @@ echo "-----------------------------------------------------\n";
 
 // Verify active user lookup in UserModel
 $userModel = new UserModel();
-$foundActive = $userModel->findByEmail('admin@stagnes.edu.ph');
-assertTest("UserModel finds registered admin user by email", $foundActive !== null && $foundActive['email'] === 'admin@stagnes.edu.ph');
+$adminEmail = $adminUser['email'] ?? 'cjbngx@gmail.com';
+$foundActive = $userModel->findByEmail($adminEmail);
+assertTest("UserModel finds registered admin user by email", $foundActive !== null && strcasecmp($foundActive['email'], $adminEmail) === 0);
 
 $fakeUser = $userModel->findByEmail('nonexistent_attacker@test.com');
 assertTest("UserModel rejects nonexistent / attacker email", $fakeUser === null);

@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/../models/ProceedingsModel.php';
+require_once __DIR__ . '/../../notification/services/NotificationService.php';
 require_once __DIR__ . '/../../helpers/AuditLogger.php';
 
 class ProceedingsService {
     private ProceedingsModel $model;
+    private NotificationService $notificationService;
 
     // Field whitelists — prevents mass assignment at the service layer
     private const HEARING_ALLOWED   = ['incident_id', 'hearing_date', 'hearing_time', 'venue', 'committee_members', 'decision_notes', 'status'];
@@ -20,6 +22,7 @@ class ProceedingsService {
 
     public function __construct() {
         $this->model = new ProceedingsModel();
+        $this->notificationService = new NotificationService();
     }
 
     // ─── Hearings ──────────────────────────────────────────────────────────
@@ -37,6 +40,17 @@ class ProceedingsService {
         $safe['presided_by'] = $user['user_id']; // always from verified session
 
         $id = $this->model->scheduleHearing($safe);
+        
+        // Automated parent SMS summons alert
+        try {
+            $hearing = $this->model->getHearingById($id);
+            if ($hearing && !empty($hearing['student_id'])) {
+                $this->notificationService->sendHearingSummonsAlert((int)$hearing['student_id'], $hearing, $user['user_id']);
+            }
+        } catch (\Throwable $e) {
+            error_log('[ProceedingsService] Hearing SMS summons error: ' . $e->getMessage());
+        }
+
         AuditLogger::log(
             'SCHEDULE_HEARING',
             'Disciplinary Hearing',
@@ -78,6 +92,14 @@ class ProceedingsService {
         $safe['issued_by'] = $user['user_id']; // always from verified session
 
         $id = $this->model->createSanction($safe);
+
+        // Automated parent SMS sanction notification
+        try {
+            $this->notificationService->sendSanctionAlert((int)$safe['student_id'], $safe, $user['user_id']);
+        } catch (\Throwable $e) {
+            error_log('[ProceedingsService] Sanction SMS alert error: ' . $e->getMessage());
+        }
+
         AuditLogger::log(
             'ISSUE_SANCTION',
             'Sanction Management',
@@ -119,6 +141,16 @@ class ProceedingsService {
             $reason = $hold ? 'Manual clearance hold set by prefect' : 'Cleared';
         }
         $this->model->toggleClearanceHold((int)$data['student_id'], $hold, $reason, (int)$user['user_id']);
+
+        // Automated parent SMS clearance alert if hold placed
+        if ($hold) {
+            try {
+                $this->notificationService->sendClearanceHoldAlert((int)$data['student_id'], $reason, $user['user_id']);
+            } catch (\Throwable $e) {
+                error_log('[ProceedingsService] Clearance hold SMS alert error: ' . $e->getMessage());
+            }
+        }
+
         AuditLogger::log(
             $hold ? 'FLAG_CLEARANCE_HOLD' : 'RELEASE_CLEARANCE_HOLD',
             'Clearance Hold',
@@ -146,6 +178,14 @@ class ProceedingsService {
             $safe['assigned_supervisor'] = $user['user_id'];
         }
         $id = $this->model->assignReformationProgram($safe);
+
+        // Automated parent SMS reformation assignment alert
+        try {
+            $this->notificationService->sendReformationAlert((int)$safe['student_id'], $safe, $user['user_id']);
+        } catch (\Throwable $e) {
+            error_log('[ProceedingsService] Reformation SMS alert error: ' . $e->getMessage());
+        }
+
         AuditLogger::log(
             'ASSIGN_REFORMATION',
             'Reformation Program',

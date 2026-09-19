@@ -274,24 +274,26 @@ CREATE INDEX IF NOT EXISTS idx_reformation_status ON reformation_programs(status
 --     status: Queued | Sent | Failed | Simulated
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS sms_logs (
-    id               SERIAL PRIMARY KEY,
-    parent_id        INT,
-    student_id       INT NOT NULL,
-    phone_number     VARCHAR(15) NOT NULL,
-    message_content  TEXT NOT NULL,
-    provider         VARCHAR(30) NOT NULL DEFAULT 'Semaphore',
-    status           VARCHAR(15) NOT NULL DEFAULT 'Sent',
-    response_payload TEXT,
-    sent_by          INT,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id                  SERIAL PRIMARY KEY,
+    parent_id           INT,
+    student_id          INT NOT NULL,
+    phone_number        VARCHAR(15) NOT NULL,
+    message_content     TEXT NOT NULL,
+    provider            VARCHAR(30) NOT NULL DEFAULT 'Semaphore',
+    provider_message_id VARCHAR(100),
+    status              VARCHAR(15) NOT NULL DEFAULT 'Sent',
+    response_payload    TEXT,
+    sent_by             INT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_sms_parent FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE SET NULL,
     CONSTRAINT fk_sms_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     CONSTRAINT fk_sms_sender FOREIGN KEY (sent_by) REFERENCES users(id) ON DELETE SET NULL,
-    CONSTRAINT chk_sms_status CHECK (status IN ('Queued', 'Sent', 'Failed', 'Simulated'))
+    CONSTRAINT chk_sms_status CHECK (status IN ('Queued', 'Sent', 'Failed', 'Simulated', 'Delivered'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sms_student ON sms_logs(student_id);
 CREATE INDEX IF NOT EXISTS idx_sms_status ON sms_logs(status);
+CREATE INDEX IF NOT EXISTS idx_sms_provider_msg ON sms_logs(provider_message_id);
 
 -- =============================================================================
 -- 13. Audit Logs Table

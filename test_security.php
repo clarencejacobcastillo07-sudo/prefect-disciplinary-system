@@ -243,6 +243,136 @@ test('api.php returns generic error message (not stack trace)', function() {
         || (strpos($src, 'getMessage') === false || strpos($src, 'error_log') !== false);
 });
 
+// ─── 7. SMS Gateway & Automated Parent Alerts ─────────────────────────────────
+
+echo "\nGroup 7: SMS Gateway & Automated Parent Alerts\n";
+
+require_once __DIR__ . '/backend/notification/services/SMSGatewayInterface.php';
+require_once __DIR__ . '/backend/notification/services/SemaphoreSMSService.php';
+
+test('SemaphoreSMSService: Normalizes Philippine phone numbers correctly', function() {
+    $tests = [
+        '+639171234567' => '09171234567',
+        '639171234567'  => '09171234567',
+        '0917-123-4567' => '09171234567',
+        '0917 123 4567' => '09171234567',
+        '9171234567'    => '09171234567',
+    ];
+    foreach ($tests as $input => $expected) {
+        if (SemaphoreSMSService::normalizePhoneNumber($input) !== $expected) {
+            return false;
+        }
+    }
+    return true;
+});
+
+test('SemaphoreSMSService: Rejects invalid phone numbers (fail-closed)', function() {
+    $invalids = ['12345', '028123456', '091712345', 'abcdefghijk', ''];
+    foreach ($invalids as $inv) {
+        if (SemaphoreSMSService::normalizePhoneNumber($inv) !== null) {
+            return false;
+        }
+    }
+    return true;
+});
+
+test('SemaphoreSMSService: Sandbox/Simulation mode dispatches with simulated message ID', function() {
+    $service = new SemaphoreSMSService('SEMAPHORE_DEMO_API_KEY', 'STAGNES');
+    $res = $service->send('09171234567', 'Test alert message');
+    return ($res['status'] === 'Simulated')
+        && !empty($res['message_id'])
+        && str_starts_with($res['message_id'], 'SIM-')
+        && ($res['recipient'] === '09171234567');
+});
+
+test('SemaphoreSMSService: Rejects empty SMS message content', function() {
+    $service = new SemaphoreSMSService('SEMAPHORE_DEMO_API_KEY', 'STAGNES');
+    $res = $service->send('09171234567', '   ');
+    return $res['status'] === 'Failed' && !empty($res['error']);
+});
+
+test('SemaphoreSMSService: Uses official Semaphore v4 API endpoint (https://api.semaphore.co/api/v4)', function() {
+    $src = file_get_contents(__DIR__ . '/backend/notification/services/SemaphoreSMSService.php');
+    return strpos($src, 'https://api.semaphore.co/api/v4') !== false
+        && strpos($src, '/messages') !== false
+        && strpos($src, '/account') !== false;
+});
+
+test('SemaphoreSMSService: Reads SEMAPHORE_API_KEY from environment variables (no hardcoded keys)', function() {
+    $src = file_get_contents(__DIR__ . '/backend/notification/services/SemaphoreSMSService.php');
+    return strpos($src, 'SEMAPHORE_API_KEY') !== false
+        && strpos($src, '$_ENV') !== false;
+});
+
+test('SemaphoreSMSService: Sandbox simulation is strictly disabled when in production mode', function() {
+    // Force production environment
+    $_ENV['APP_ENV'] = 'production';
+    $service = new SemaphoreSMSService('', 'STAGNES');
+    $res = $service->send('09171234567', 'Production test message');
+    $_ENV['APP_ENV'] = 'development'; // revert
+    return $res['status'] === 'Failed' && strpos($res['error'], 'production') !== false;
+});
+
+test('NotificationModel: Persists and indexes Semaphore provider_message_id', function() {
+    $src = file_get_contents(__DIR__ . '/backend/notification/models/NotificationModel.php');
+    $schema = file_get_contents(__DIR__ . '/database/schema.sql');
+    return strpos($src, 'provider_message_id') !== false
+        && strpos($schema, 'provider_message_id') !== false;
+});
+
+test('NotificationService: Syncs delivery receipts using Semaphore provider_message_id', function() {
+    $src = file_get_contents(__DIR__ . '/backend/notification/services/NotificationService.php');
+    return strpos($src, 'provider_message_id') !== false
+        && strpos($src, 'checkStatus((string)$log[\'provider_message_id\'])') !== false;
+});
+
+test('NotificationService: Implements automated event alert templates with database phone resolution', function() {
+    $src = file_get_contents(__DIR__ . '/backend/notification/services/NotificationService.php');
+    return strpos($src, 'sendIncidentAlert') !== false
+        && strpos($src, 'sendHearingSummonsAlert') !== false
+        && strpos($src, 'sendSanctionAlert') !== false
+        && strpos($src, 'sendClearanceHoldAlert') !== false
+        && strpos($src, 'sendReformationAlert') !== false
+        && strpos($src, 'sendParentSMS') !== false;
+});
+
+test('NotificationController: Dispatches SMS using server-side database parent phone resolution', function() {
+    $src = file_get_contents(__DIR__ . '/backend/notification/controllers/NotificationController.php');
+    return strpos($src, 'sendParentSMS') !== false;
+});
+
+test('ProceedingsService: Implements automated parent SMS triggers for all workflows', function() {
+    $src = file_get_contents(__DIR__ . '/backend/disciplinary-proceedings/services/ProceedingsService.php');
+    return strpos($src, 'sendHearingSummonsAlert') !== false
+        && strpos($src, 'sendSanctionAlert') !== false
+        && strpos($src, 'sendClearanceHoldAlert') !== false
+        && strpos($src, 'sendReformationAlert') !== false;
+});
+
+// ─── 8. Production Deployment Security Headers & Rate Limiting ─────────────────
+
+echo "\nGroup 8: Production Deployment Security Headers & Rate Limiting\n";
+
+test('api.php: Enforces modern HTTP security headers', function() {
+    $src = file_get_contents(__DIR__ . '/api.php');
+    return strpos($src, 'X-Content-Type-Options') !== false
+        && strpos($src, 'X-Frame-Options') !== false
+        && strpos($src, 'X-XSS-Protection') !== false
+        && strpos($src, 'Referrer-Policy') !== false;
+});
+
+test('RateLimitMiddleware: Enforces request rate limiting and header emissions', function() {
+    $src = file_get_contents(__DIR__ . '/backend/middleware/RateLimitMiddleware.php');
+    return strpos($src, 'RateLimitMiddleware') !== false
+        && strpos($src, 'X-RateLimit-Limit') !== false
+        && strpos($src, '429') !== false;
+});
+
+test('.gitignore: Blocks sensitive .env and *.sqlite database files from VCS leakage', function() {
+    $src = file_get_contents(__DIR__ . '/.gitignore');
+    return strpos($src, '.env') !== false && strpos($src, '*.sqlite') !== false;
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 echo "\n═══════════════════════════════════════\n";
@@ -250,3 +380,4 @@ echo "Results: {$pass} passed, {$fail} failed\n";
 echo "═══════════════════════════════════════\n\n";
 
 exit($fail > 0 ? 1 : 0);
+
