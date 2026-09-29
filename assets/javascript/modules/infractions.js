@@ -13,16 +13,60 @@ window.renderInfractionsModule = async function (container) {
     ? AuthManager.getCurrentUser()
     : null;
 
+  async function loadActiveViolations() {
+    const violRes = await ApiClient.get('incidents', 'violations');
+    const data = (violRes && violRes.data) ? violRes.data : [];
+    // Only return active categories for infraction logging
+    return data.filter(v => v.is_active == 1 || v.is_active === true || v.is_active === '1');
+  }
+
+  function buildViolationOptionsHtml(list) {
+    if (!list || list.length === 0) {
+      return '<option value="">-- No active violation categories configured --</option>';
+    }
+    const placeholder = '<option value="">-- Choose Offense --</option>';
+    const options = list.map(v => `<option value="${v.id}">${v.code} - ${v.title} (${v.category} : -${v.demerit_points} pts)</option>`).join('');
+    return placeholder + options;
+  }
+
+  async function refreshActiveViolationsDropdown(preferredId = null) {
+    const select = document.getElementById('inf_violation_id');
+    if (!select) return;
+
+    const currentVal = preferredId !== null ? preferredId : select.value;
+    select.innerHTML = '<option value="">Loading violation categories...</option>';
+    select.disabled = true;
+
+    try {
+      violations = await loadActiveViolations();
+      select.disabled = false;
+      select.innerHTML = buildViolationOptionsHtml(violations);
+      if (currentVal && violations.some(v => String(v.id) === String(currentVal))) {
+        select.value = currentVal;
+      }
+    } catch (err) {
+      console.error('Failed to load violation categories:', err);
+      select.disabled = false;
+      select.innerHTML = '<option value="">Unable to load violation categories. Please try again.</option>';
+    }
+  }
+
+  // 1. Fetch incident reports independently
   try {
-    const [incRes, violRes] = await Promise.all([
-      ApiClient.get('incidents'),
-      ApiClient.get('incidents', 'violations')
-    ]);
-    incidents = incRes.data || [];
-    violations = violRes.data || [];
+    const incRes = await ApiClient.get('incidents');
+    incidents = (incRes && incRes.data) ? incRes.data : [];
   } catch (e) {
-    console.error('Error fetching incidents or violations:', e);
+    console.error('Error fetching incidents:', e);
     incidents = [];
+  }
+
+  // 2. Fetch active violation categories independently
+  let violationsLoadError = false;
+  try {
+    violations = await loadActiveViolations();
+  } catch (e) {
+    console.error('Error fetching active violations:', e);
+    violationsLoadError = true;
     violations = [];
   }
 
@@ -152,8 +196,9 @@ window.renderInfractionsModule = async function (container) {
             <div class="form-group">
               <label>Offense / Violation Category <span style="color:var(--danger);">*</span></label>
               <select id="inf_violation_id" required>
-                <option value="">-- Choose Offense --</option>
-                ${violations.map(v => `<option value="${v.id}">${v.code} - ${v.title} (${v.category} : -${v.demerit_points} pts)</option>`).join('')}
+                ${violationsLoadError
+                  ? '<option value="">Unable to load violation categories. Please try again.</option>'
+                  : buildViolationOptionsHtml(violations)}
               </select>
             </div>
             <div class="form-group">
@@ -169,7 +214,7 @@ window.renderInfractionsModule = async function (container) {
             </div>
             <div class="form-group">
               <label>Reporting Officer</label>
-              <input type="text" id="inf_reporting_officer" value="${currentUser.full_name} (${currentUser.role_name || 'Officer'})" readonly style="background:var(--input-bg); opacity:0.85;" />
+              <input type="text" id="inf_reporting_officer" value="${currentUser ? currentUser.full_name : 'Prefect Officer'} (${(currentUser && currentUser.role_name) || 'Officer'})" readonly style="background:var(--input-bg); opacity:0.85;" />
             </div>
           </div>
 
@@ -293,7 +338,7 @@ window.renderInfractionsModule = async function (container) {
     document.getElementById('student_search_status_area').innerHTML = '';
   };
 
-  window.openLogIncidentModal = () => {
+  window.openLogIncidentModal = async () => {
     const modal = document.getElementById('infractionModal');
     if (modal) {
       clearSelectedStudent();
@@ -301,6 +346,7 @@ window.renderInfractionsModule = async function (container) {
       if (alertBox) alertBox.style.display = 'none';
       modal.classList.add('active');
       performStudentSearch(''); // Populate initial students for fast selection
+      await refreshActiveViolationsDropdown();
     }
   };
 
@@ -325,6 +371,18 @@ window.renderInfractionsModule = async function (container) {
       return;
     }
 
+    const violationSelect = document.getElementById('inf_violation_id');
+    const violationId = violationSelect ? violationSelect.value : '';
+    if (!violationId) {
+      if (alertBox && alertText) {
+        alertText.textContent = 'Please choose a valid offense / violation category.';
+        alertBox.style.display = 'flex';
+      } else {
+        alert('Please choose a valid offense / violation category.');
+      }
+      return;
+    }
+
     const btn = document.getElementById('saveInfractionBtn');
     if (btn) btn.disabled = true;
 
@@ -333,7 +391,7 @@ window.renderInfractionsModule = async function (container) {
 
     const payload = {
       student_id: parseInt(studentId, 10),
-      violation_id: parseInt(document.getElementById('inf_violation_id').value, 10),
+      violation_id: parseInt(violationId, 10),
       incident_date: formattedDate,
       location: document.getElementById('inf_location').value,
       description: document.getElementById('inf_description').value,

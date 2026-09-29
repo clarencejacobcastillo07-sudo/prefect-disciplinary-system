@@ -157,6 +157,8 @@ window.renderViolationsModule = async function(container) {
     document.getElementById('violationModalTitle').innerHTML = `<i class="fas fa-plus-circle" style="color:var(--accent);"></i> Create Violation Offense Category`;
     document.getElementById('violationForm').reset();
     document.getElementById('v_status_group').style.display = 'none';
+    const activeEl = document.getElementById('v_is_active');
+    if (activeEl) activeEl.value = '1';
     document.getElementById('violationModal').classList.add('active');
   };
 

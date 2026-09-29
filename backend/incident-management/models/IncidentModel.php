@@ -96,7 +96,7 @@ class IncidentModel {
         if ($includeInactive) {
             $stmt = $this->db->query("SELECT * FROM violations ORDER BY category ASC, code ASC");
         } else {
-            $stmt = $this->db->query("SELECT * FROM violations WHERE is_active = 1 OR is_active = TRUE ORDER BY category ASC, code ASC");
+            $stmt = $this->db->query("SELECT * FROM violations WHERE is_active = TRUE ORDER BY category ASC, code ASC");
         }
         return $stmt->fetchAll();
     }

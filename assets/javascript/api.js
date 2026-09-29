@@ -83,20 +83,43 @@ class ApiClient {
     }
   }
 
+  static _resolveIdAndParams(id, params) {
+    let resolvedId = id;
+    let resolvedParams = params;
+    if (id !== null && typeof id === 'object') {
+      if ('id' in id) {
+        resolvedId = id.id;
+        const rest = { ...id };
+        delete rest.id;
+        if (Object.keys(rest).length > 0) {
+          resolvedParams = { ...rest, ...(params || {}) };
+        }
+      } else {
+        resolvedParams = id;
+        resolvedId = null;
+      }
+    }
+    return { resolvedId, resolvedParams };
+  }
+
   static get(service, action = '', id = null, params = null) {
-    return this.request(service, action, 'GET', null, id, params);
+    const { resolvedId, resolvedParams } = this._resolveIdAndParams(id, params);
+    return this.request(service, action, 'GET', null, resolvedId, resolvedParams);
   }
 
-  static post(service, action = '', data = {}) {
-    return this.request(service, action, 'POST', data);
+  static post(service, action = '', data = {}, id = null, params = null) {
+    const { resolvedId, resolvedParams } = this._resolveIdAndParams(id, params);
+    return this.request(service, action, 'POST', data, resolvedId, resolvedParams);
   }
 
-  static put(service, action = '', id = null, data = {}) {
-    return this.request(service, action, 'PUT', data, id);
+  static put(service, action = '', id = null, data = {}, params = null) {
+    const { resolvedId, resolvedParams } = this._resolveIdAndParams(id, params);
+    return this.request(service, action, 'PUT', data, resolvedId, resolvedParams);
   }
 
-  static delete(service, action = '', id = null) {
-    return this.request(service, action, 'DELETE', null, id);
+  static delete(service, action = '', id = null, params = null) {
+    const { resolvedId, resolvedParams } = this._resolveIdAndParams(id, params);
+    return this.request(service, action, 'DELETE', null, resolvedId, resolvedParams);
   }
 }
 
